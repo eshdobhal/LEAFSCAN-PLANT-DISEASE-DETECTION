@@ -23,7 +23,7 @@
   <dl class="container trust__list">
     <div><dt>Leaf conditions</dt><dd>{{ stats.conditions }}</dd></div>
     <div><dt>Crops</dt><dd>{{ stats.crops }}</dd></div>
-    <div><dt>Runs on a CPU in</dt><dd>&lt; 1 s</dd></div>
+    <div><dt>Diagnosis time</dt><dd>&lt; 1 s</dd></div>
   </dl>
 </section>
 
@@ -61,7 +61,7 @@
         <div>
           <h3 class="crop__name">{{ crop.name }}</h3>
           <p class="crop__meta">
-            {% if crop.diseases == 0 %}Health check only{% else %}{{ crop.diseases }} disease{{ "s" if crop.diseases != 1 }} + healthy{% endif %}
+            {% if crop.diseases == 0 %}Health check only{% else %}{{ crop.diseases }} disease{{ "s" if crop.diseases != 1 }}{% endif %}
           </p>
         </div>
       </li>
