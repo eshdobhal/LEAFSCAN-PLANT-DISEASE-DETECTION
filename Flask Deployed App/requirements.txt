@@ -5,6 +5,9 @@ torch==2.9.1
 torchvision==0.24.1
 Flask==3.1.2
 Pillow==11.3.0
+# timm provides the CAFormer-S18 hybrid architecture (weights are loaded locally, no download).
+timm==1.0.20
+huggingface_hub==0.36.2  # timm 1.0.20 is not compatible with huggingface_hub 1.x/2.x
 # Production WSGI servers: gunicorn on Linux (Render/Railway), waitress on Windows.
 gunicorn==23.0.0; sys_platform != "win32"
 waitress==3.0.2

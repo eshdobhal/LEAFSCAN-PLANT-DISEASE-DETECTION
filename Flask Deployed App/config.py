@@ -30,6 +30,12 @@ class Config:
     ORIGINAL_PROJECT_URL = "https://github.com/manthan89-py/Plant-Disease-Detection"
 
     # --- Model ---
+    # "hybrid" = CAFormer-S18 (CNN + Transformer, trained by training/train_hybrid.py),
+    # "cnn" = the original 39-class CNN, "auto" = hybrid if its weights exist, else cnn.
+    MODEL_KIND = os.environ.get("MODEL_KIND", "auto").lower()
+    HYBRID_MODEL_PATH = os.environ.get("HYBRID_MODEL_PATH", str(BASE_DIR / "leafscan_hybrid.pt"))
+    # Test-time augmentation: also look at the mirror image and average (hybrid only; ~2x CPU time).
+    TTA = _env_bool("TTA", default=True)
     MODEL_PATH = os.environ.get("MODEL_PATH", _default_model_path())
     MODEL_DOWNLOAD_URL = "https://drive.google.com/drive/folders/1ewJWAiduGuld_9oGSrTuLumg9y62qS6A?usp=share_link"
     # If true, refuse to start without real weights (use in production).

@@ -7,6 +7,7 @@ import base64
 import io
 import logging
 import secrets
+from pathlib import Path
 
 from flask import Flask, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -60,6 +61,15 @@ def preview_data_url(image: Image.Image, max_side: int) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
+def load_predictor(config) -> Predictor:
+    """MODEL_KIND "auto" uses the hybrid when its weights file exists, otherwise the original CNN."""
+    kind = config["MODEL_KIND"]
+    if kind == "auto":
+        kind = "hybrid" if Path(config["HYBRID_MODEL_PATH"]).is_file() else "cnn"
+    path = config["HYBRID_MODEL_PATH"] if kind == "hybrid" else config["MODEL_PATH"]
+    return Predictor(path, kind=kind, require_weights=config["REQUIRE_MODEL"], tta=config["TTA"])
+
+
 ERROR_TEXT = {
     404: ("Page not found", "We couldn't find that page. It may have moved."),
     405: ("Not allowed", "That address doesn't accept this kind of request."),
@@ -77,7 +87,7 @@ def create_app(config_class=Config) -> Flask:
     # --- Loaded once, shared by every request ---
     catalog = load_catalog(app.config["DISEASE_CSV"], app.config["SUPPLEMENT_CSV"])
     crops = crop_summary(catalog)
-    predictor = Predictor(app.config["MODEL_PATH"], require_weights=app.config["REQUIRE_MODEL"])
+    predictor = load_predictor(app.config)
     stats = {
         "classes": len(catalog),
         "conditions": sum(not c.is_background for c in catalog),
@@ -127,6 +137,8 @@ def create_app(config_class=Config) -> Flask:
             "asset": asset,
             "csp_nonce": g.get("csp_nonce", ""),
             "demo_mode": not predictor.model_loaded,
+            "model_name": predictor.name,
+            "model_kind": predictor.kind,
             "stats": stats,
         }
 
@@ -202,7 +214,7 @@ def create_app(config_class=Config) -> Flask:
 
     @app.get("/healthz")
     def healthz():
-        return jsonify(status="ok", model_loaded=predictor.model_loaded)
+        return jsonify(status="ok", model_loaded=predictor.model_loaded, model=predictor.kind)
 
     # --- Files browsers ask for at the site root ---
     @app.get("/favicon.ico")

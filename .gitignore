@@ -11,3 +11,8 @@ venv/
 
 # Local env files
 .env
+
+# Training data, environments and run outputs (large)
+data/
+.venv-train/
+training/runs/
