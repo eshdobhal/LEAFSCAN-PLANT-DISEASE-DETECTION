@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Model weights are large binaries: download them separately (see README)
+*.pt
+*.pth
+
+# Local env files
+.env

@@ -1,0 +1,4 @@
+# Extra tools for tests and screenshots: pip install -r requirements-dev.txt
+-r requirements.txt
+pytest==8.4.2
+playwright==1.55.0
