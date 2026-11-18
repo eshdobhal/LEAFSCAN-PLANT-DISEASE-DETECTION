@@ -1,72 +1,238 @@
-import os
-from flask import Flask, redirect, render_template, request
-from PIL import Image
-import torchvision.transforms.functional as TF
-import CNN
-import numpy as np
-import torch
-import pandas as pd
+"""LeafScan web app: application factory and routes.
+
+Run locally:   flask --app app run
+Production:    gunicorn "app:create_app()"  (Linux)   |   waitress-serve --call app:create_app  (Windows)
+"""
+import base64
+import io
+import logging
+import secrets
+
+from flask import Flask, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from PIL import Image, ImageOps, UnidentifiedImageError
+from werkzeug.exceptions import HTTPException
+
+from catalog import crop_summary, image_hosts, load_catalog
+from config import Config
+from model import Predictor
+
+log = logging.getLogger("leafscan")
+
+# Refuse absurd pixel counts (a tiny file can still decode to gigabytes: a "decompression bomb").
+Image.MAX_IMAGE_PIXELS = 40_000_000
 
 
-disease_info = pd.read_csv('disease_info.csv' , encoding='cp1252')
-supplement_info = pd.read_csv('supplement_info.csv',encoding='cp1252')
-
-model = CNN.CNN(39)    
-model.load_state_dict(torch.load("plant_disease_model_1_latest.pt"))
-model.eval()
-
-def prediction(image_path):
-    image = Image.open(image_path)
-    image = image.resize((224, 224))
-    input_data = TF.to_tensor(image)
-    input_data = input_data.view((-1, 3, 224, 224))
-    output = model(input_data)
-    output = output.detach().numpy()
-    index = np.argmax(output)
-    return index
+class UploadError(ValueError):
+    """A problem with the uploaded file that the user can fix. The message is shown to them."""
 
 
-app = Flask(__name__)
+def read_upload(file, config) -> Image.Image:
+    """Validate an uploaded file entirely in memory and return it as a PIL image.
 
-@app.route('/')
-def home_page():
-    return render_template('home.html')
+    Nothing is written to disk and the user's filename is never used as a path;
+    we only look at its extension.
+    """
+    if file is None or not file.filename:
+        raise UploadError("Please choose a photo of a leaf first.")
+    extension = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if extension not in config["ALLOWED_EXTENSIONS"]:
+        raise UploadError("That file type isn't supported. Please use a JPG, PNG or WebP photo.")
+    data = file.read()
+    if not data:
+        raise UploadError("That file is empty. Please choose another photo.")
+    try:
+        Image.open(io.BytesIO(data)).verify()  # is it really an uncorrupted image?
+        image = Image.open(io.BytesIO(data))   # verify() makes the object unusable, so open again
+        if image.format not in config["ALLOWED_FORMATS"]:
+            raise UploadError("That file type isn't supported. Please use a JPG, PNG or WebP photo.")
+        image = ImageOps.exif_transpose(image)  # phone photos: apply the rotation stored in EXIF
+    except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError) as exc:
+        raise UploadError("We couldn't read that file as an image. Please try another photo.") from exc
+    return image
 
-@app.route('/contact')
-def contact():
-    return render_template('contact-us.html')
 
-@app.route('/index')
-def ai_engine_page():
-    return render_template('index.html')
+def preview_data_url(image: Image.Image, max_side: int) -> str:
+    """Small JPEG copy of the user's photo, embedded in the page instead of saved to disk."""
+    thumb = image.convert("RGB")
+    thumb.thumbnail((max_side, max_side))
+    buffer = io.BytesIO()
+    thumb.save(buffer, "JPEG", quality=82)
+    return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
 
-@app.route('/mobile-device')
-def mobile_device_detected_page():
-    return render_template('mobile-device.html')
 
-@app.route('/submit', methods=['GET', 'POST'])
-def submit():
-    if request.method == 'POST':
-        image = request.files['image']
-        filename = image.filename
-        file_path = os.path.join('static/uploads', filename)
-        image.save(file_path)
-        print(file_path)
-        pred = prediction(file_path)
-        title = disease_info['disease_name'][pred]
-        description =disease_info['description'][pred]
-        prevent = disease_info['Possible Steps'][pred]
-        image_url = disease_info['image_url'][pred]
-        supplement_name = supplement_info['supplement name'][pred]
-        supplement_image_url = supplement_info['supplement image'][pred]
-        supplement_buy_link = supplement_info['buy link'][pred]
-        return render_template('submit.html' , title = title , desc = description , prevent = prevent , 
-                               image_url = image_url , pred = pred ,sname = supplement_name , simage = supplement_image_url , buy_link = supplement_buy_link)
+ERROR_TEXT = {
+    404: ("Page not found", "We couldn't find that page. It may have moved."),
+    405: ("Not allowed", "That address doesn't accept this kind of request."),
+    413: ("Photo too large", "Photos must be 8 MB or smaller. Try a smaller photo or a screenshot of it."),
+    500: ("Something went wrong", "An unexpected error happened on our side. Please try again."),
+}
 
-@app.route('/market', methods=['GET', 'POST'])
-def market():
-    return render_template('market.html', supplement_image = list(supplement_info['supplement image']),
-                           supplement_name = list(supplement_info['supplement name']), disease = list(disease_info['disease_name']), buy = list(supplement_info['buy link']))
 
-if __name__ == '__main__':
-    app.run(debug=True)
+def create_app(config_class=Config) -> Flask:
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+    app.jinja_env.trim_blocks = app.jinja_env.lstrip_blocks = True  # tidier HTML output
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    # --- Loaded once, shared by every request ---
+    catalog = load_catalog(app.config["DISEASE_CSV"], app.config["SUPPLEMENT_CSV"])
+    crops = crop_summary(catalog)
+    predictor = Predictor(app.config["MODEL_PATH"], require_weights=app.config["REQUIRE_MODEL"])
+    stats = {
+        "classes": len(catalog),
+        "conditions": sum(not c.is_background for c in catalog),
+        "diseases": sum(not (c.is_healthy or c.is_background) for c in catalog),
+        "crops": len(crops),
+    }
+    threshold = app.config["CONFIDENCE_THRESHOLD"]
+    ref_hosts = " ".join(f"https://{host}" for host in sorted(image_hosts(catalog)))
+    csp_template = (
+        "default-src 'self'; script-src 'self' 'nonce-{nonce}'; style-src 'self'; "
+        f"img-src 'self' data: blob: {ref_hosts}; font-src 'self'; connect-src 'self'; "
+        "media-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    )
+
+    def asset(path: str) -> str:
+        """URL of a static file with ?v= so a new release busts the browser cache."""
+        return url_for("static", filename=path, v=app.config["STATIC_VERSION"])
+
+    def run_prediction(image):
+        result = predictor.predict(image)
+        best = catalog[result["index"]]
+        log.info("prediction label=%s confidence=%.3f latency_ms=%.0f",
+                 best.key, result["confidence"], result["latency_ms"])
+        return best, result
+
+    # --- Request hooks ---
+    @app.before_request
+    def make_nonce():
+        g.csp_nonce = secrets.token_urlsafe(16)  # lets our one inline <script> run under the CSP
+
+    @app.after_request
+    def security_headers(response):
+        response.headers["Content-Security-Policy"] = csp_template.format(nonce=g.get("csp_nonce", ""))
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
+        return response
+
+    @app.context_processor
+    def template_globals():
+        return {
+            "app_name": app.config["APP_NAME"],
+            "tagline": app.config["APP_TAGLINE"],
+            "repo_url": app.config["REPO_URL"],
+            "original_url": app.config["ORIGINAL_PROJECT_URL"],
+            "asset": asset,
+            "csp_nonce": g.get("csp_nonce", ""),
+            "demo_mode": not predictor.model_loaded,
+            "stats": stats,
+        }
+
+    # --- Pages ---
+    @app.get("/")
+    def home():
+        return render_template("home.html", crops=crops)
+
+    @app.route("/diagnose", methods=["GET", "POST"])
+    def diagnose():
+        if request.method == "GET":
+            return render_template("diagnose.html")
+        try:
+            image = read_upload(request.files.get("image"), app.config)
+        except UploadError as exc:
+            return render_template("diagnose.html", error=str(exc)), 400
+        best, result = run_prediction(image)
+        return render_template(
+            "result.html",
+            c=best,
+            confidence=result["confidence"],
+            top3=[(catalog[i], p) for i, p in result["top3"]],
+            low_confidence=result["confidence"] < threshold,
+            photo=preview_data_url(image, app.config["PREVIEW_MAX_SIDE"]),
+        )
+
+    @app.get("/treatments")
+    def treatments():
+        products = [c for c in catalog if not c.is_background and c.product_link]
+        return render_template("treatments.html", products=products, crops=crops)
+
+    @app.get("/about")
+    def about():
+        return render_template("about.html", crops=crops, threshold=threshold)
+
+    # --- Old URLs from the original app ---
+    @app.get("/index")
+    def old_index():
+        return redirect(url_for("diagnose"), code=301)
+
+    @app.get("/market")
+    def old_market():
+        return redirect(url_for("treatments"), code=301)
+
+    @app.get("/contact")
+    def old_contact():
+        return redirect(url_for("about"), code=301)
+
+    @app.route("/submit", methods=["GET", "POST"])
+    def old_submit():
+        # 307 keeps the POST method and the uploaded file; a GET just goes to the form.
+        return redirect(url_for("diagnose"), code=307 if request.method == "POST" else 301)
+
+    # --- JSON API ---
+    @app.post("/api/predict")
+    def api_predict():
+        try:
+            image = read_upload(request.files.get("image"), app.config)
+        except UploadError as exc:
+            return jsonify(error="invalid_image", message=str(exc)), 400
+        best, result = run_prediction(image)
+        return jsonify(
+            label=best.key,
+            crop=best.crop,
+            condition=best.condition,
+            is_healthy=best.is_healthy,
+            is_background=best.is_background,
+            confidence=round(result["confidence"], 4),
+            top3=[{"label": catalog[i].key, "confidence": round(p, 4)} for i, p in result["top3"]],
+            low_confidence=result["confidence"] < threshold,
+            demo_mode=not predictor.model_loaded,
+        )
+
+    @app.get("/healthz")
+    def healthz():
+        return jsonify(status="ok", model_loaded=predictor.model_loaded)
+
+    # --- Files browsers ask for at the site root ---
+    @app.get("/favicon.ico")
+    def favicon():
+        return send_from_directory(app.static_folder, "img/favicon.ico")
+
+    @app.get("/robots.txt")
+    def robots():
+        return send_from_directory(app.static_folder, "robots.txt")
+
+    # --- Errors ---
+    @app.errorhandler(HTTPException)
+    def http_error(exc):
+        title, message = ERROR_TEXT.get(exc.code, (exc.name, exc.description))
+        if request.path.startswith("/api/"):
+            return jsonify(error=title, message=message), exc.code
+        return render_template("error.html", code=exc.code, title=title, message=message), exc.code
+
+    @app.errorhandler(Exception)
+    def unexpected_error(exc):
+        log.exception("Unhandled error on %s", request.path)
+        title, message = ERROR_TEXT[500]
+        if request.path.startswith("/api/"):
+            return jsonify(error=title, message=message), 500
+        return render_template("error.html", code=500, title=title, message=message), 500
+
+    return app
+
+
+if __name__ == "__main__":
+    # `python app.py` still works; debug only if FLASK_DEBUG=1.
+    application = create_app()
+    application.run(debug=application.config["DEBUG"])

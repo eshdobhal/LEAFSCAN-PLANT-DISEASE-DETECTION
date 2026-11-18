@@ -1,0 +1,28 @@
+{# Reusable snippets. Import with: {% from "partials/macros.html" import icon %} #}
+
+{# Inline SVG icon from the sprite in static/icons.svg. Decorative, so hidden from screen readers. #}
+{% macro icon(name, class="icon") -%}
+<svg class="{{ class }}" aria-hidden="true" focusable="false"><use href="{{ asset('icons.svg') }}#{{ name }}"></use></svg>
+{%- endmacro %}
+
+{# Coloured status chip for a Condition. #}
+{% macro status_chip(c) -%}
+{% if c.is_background %}<span class="chip chip--neutral">{{ icon("info") }}Not a leaf</span>
+{% elif c.is_healthy %}<span class="chip chip--ok">{{ icon("check") }}Healthy</span>
+{% else %}<span class="chip chip--bad">{{ icon("alert") }}Disease detected</span>{% endif %}
+{%- endmacro %}
+
+{# Product card used on the result page and the treatments page. #}
+{% macro product_card(c, heading_level=3) -%}
+<article class="product card" data-crop="{{ c.crop_slug }}" data-kind="{{ c.product_kind }}"
+  data-search="{{ (c.crop ~ ' ' ~ c.condition ~ ' ' ~ c.product_name) | lower }}">
+  <img class="product__img" src="{{ asset('img/products/' ~ c.product_kind ~ '.svg') }}" alt="" width="96" height="96" loading="lazy">
+  <div class="product__body">
+    <p class="eyebrow">{{ "Fertiliser" if c.is_healthy else "Treatment" }} · {{ c.label }}</p>
+    <h{{ heading_level }} class="product__name">{{ c.product_name }}</h{{ heading_level }}>
+    <a class="btn btn--ghost btn--sm" href="{{ c.product_link }}" target="_blank" rel="noopener noreferrer">
+      {{ icon("shopping-bag") }}View product<span class="visually-hidden"> (opens a third-party shop in a new tab)</span>
+    </a>
+  </div>
+</article>
+{%- endmacro %}

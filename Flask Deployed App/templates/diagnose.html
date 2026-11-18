@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% set title = "Diagnose a leaf" %}
+{% block description %}Upload or take a photo of a plant leaf and get an instant disease diagnosis with care steps.{% endblock %}
+{% block content %}
+<div class="container section diagnose">
+  <div class="diagnose__main">
+    <h1>Diagnose a leaf</h1>
+    <p class="lead">Upload a photo of a single leaf, or take one with your camera.</p>
+
+    {# Works as a plain HTML form; diagnose.js adds drag-and-drop, paste, camera and resizing. #}
+    <form class="card upload" action="{{ url_for('diagnose') }}" method="post" enctype="multipart/form-data" data-upload-form novalidate>
+      <div class="dropzone" data-dropzone>
+        <span class="dropzone__icon">{{ icon("upload") }}</span>
+        <p class="dropzone__title"><span class="js-only">Drag a photo here, paste it, or</span><span class="no-js-only">Choose a leaf photo</span></p>
+        <div class="cluster cluster--center">
+          <input class="file-input" id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp"
+                 aria-describedby="file-hint upload-error">
+          <label class="btn btn--primary js-only" for="image">{{ icon("upload") }}Choose photo</label>
+          <button class="btn btn--ghost" type="button" data-camera-open hidden>{{ icon("camera") }}Use camera</button>
+        </div>
+        <p class="hint" id="file-hint">JPG, PNG or WebP, up to 8 MB.</p>
+      </div>
+
+      <div class="preview" data-preview hidden>
+        <img class="preview__img" data-preview-img alt="Selected leaf photo" width="160" height="160">
+        <div class="preview__meta">
+          <p class="preview__name" data-preview-name></p>
+          <p class="hint" data-preview-size></p>
+          <button class="btn btn--ghost btn--sm" type="button" data-remove>{{ icon("x") }}Remove</button>
+        </div>
+      </div>
+
+      <p class="form-error" id="upload-error" role="alert" data-error>{{ error or "" }}</p>
+
+      <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>
+        <span class="spinner" aria-hidden="true"></span>
+        <span data-submit-label>Diagnose leaf</span>
+      </button>
+    </form>
+  </div>
+
+  <aside class="card tips" aria-labelledby="tips-title">
+    <h2 id="tips-title" class="h3">{{ icon("sun") }}Tips for a good photo</h2>
+    <ul class="checklist">
+      <li>One leaf at a time</li>
+      <li>Fill most of the frame with the leaf</li>
+      <li>Daylight, but not harsh direct sun</li>
+      <li>Plain background, such as your palm or a sheet of paper</li>
+      <li>Hold steady so the leaf is in focus</li>
+    </ul>
+    <p class="hint">Your photo is analysed in memory and never stored.</p>
+  </aside>
+</div>
+
+{# Camera dialog (only reachable when JavaScript and a camera are available). #}
+<dialog class="camera" data-camera aria-labelledby="camera-title">
+  <div class="camera__head">
+    <h2 id="camera-title" class="h3">Take a photo</h2>
+    <button class="icon-btn" type="button" data-camera-close aria-label="Close camera">{{ icon("x") }}</button>
+  </div>
+  <div class="camera__stage">
+    <video data-camera-video playsinline muted></video>
+    <canvas data-camera-canvas hidden></canvas>
+  </div>
+  <p class="camera__status" role="status" data-camera-status></p>
+  <div class="cluster cluster--center">
+    <button class="btn btn--primary" type="button" data-camera-capture>{{ icon("camera") }}Capture</button>
+    <button class="btn btn--ghost" type="button" data-camera-retake hidden>{{ icon("refresh") }}Retake</button>
+    <button class="btn btn--primary" type="button" data-camera-use hidden>{{ icon("check") }}Use photo</button>
+  </div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script src="{{ asset('js/diagnose.js') }}" defer></script>{% endblock %}

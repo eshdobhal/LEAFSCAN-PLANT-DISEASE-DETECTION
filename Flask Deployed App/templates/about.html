@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% set title = "About" %}
+{% block description %}How {{ app_name }} works: a convolutional neural network trained on the PlantVillage dataset, its {{ stats.crops }} supported crops, and its limits.{% endblock %}
+{% block content %}
+<div class="container section prose about">
+  <h1>About {{ app_name }}</h1>
+  <p class="lead">{{ app_name }} is a free tool for farmers and home gardeners. You photograph one leaf and it
+    suggests the most likely disease, how confident it is, and what to do about it.</p>
+
+  <h2>Supported crops</h2>
+  <p>The model knows {{ stats.diseases }} diseases plus the healthy state of {{ stats.crops }} crops:</p>
+  <ul class="tag-list">
+    {% for crop in crops %}<li>{{ crop.name }}</li>{% endfor %}
+  </ul>
+
+  <h2>How the model works</h2>
+  <p>The diagnosis comes from a <strong>convolutional neural network</strong> (CNN): a type of model that learns
+    visual patterns, such as spots, rings and discoloured veins, directly from example photos.</p>
+  <ul>
+    <li>It was trained on the public <strong>PlantVillage</strong> dataset: tens of thousands of photos of single leaves on plain backgrounds.</li>
+    <li>It chooses between <strong>{{ stats.classes }} classes</strong>: {{ stats.diseases }} diseases,
+      {{ stats.conditions - stats.diseases }} "healthy" classes, and one "no leaf in the photo" class.</li>
+    <li>Your photo is resized and centre-cropped to 224 × 224 pixels, exactly as in training, then the network
+      gives a probability for every class. The highest is the diagnosis.</li>
+    <li>If the top probability is below {{ "%.0f" | format(threshold * 100) }}%, we tell you the model isn't sure.</li>
+    <li>It runs on an ordinary server CPU in well under a second. Photos are processed in memory and never stored.</li>
+  </ul>
+
+  <h2>Limitations</h2>
+  <ul>
+    <li>It can only recognise the conditions listed above. A disease it has never seen will be reported as the closest one it knows.</li>
+    <li>Training photos were taken in a lab, so cluttered field photos, several leaves, or poor light lower accuracy.</li>
+    <li>It looks at one leaf only. It can't see roots, stems, fruit, soil or weather, which an expert would consider.</li>
+    <li>Product suggestions come from the original project's data and haven't been independently checked.</li>
+  </ul>
+
+  <div class="banner banner--info">
+    {{ icon("info") }}
+    <p><strong>Disclaimer.</strong> {{ app_name }} gives an automated first opinion, not professional advice.
+      Before spraying or removing plants, confirm the diagnosis with a local agricultural extension officer or
+      plant clinic, and always follow product label instructions.</p>
+  </div>
+
+  <h2>Credit</h2>
+  <p>Model and dataset pipeline based on the open-source
+    <a href="{{ original_url }}" rel="noopener noreferrer">Plant-Disease-Detection</a> project by
+    Manthan Bhikadiya &amp; Krishna Baldaniya. The web app was rebuilt as {{ app_name }} with a new interface,
+    validation and tests. Fonts: Fraunces and Inter (SIL Open Font License).</p>
+  <p><a class="btn btn--primary" href="{{ url_for('diagnose') }}">Diagnose a leaf{{ icon("arrow-right") }}</a></p>
+</div>
+{% endblock %}

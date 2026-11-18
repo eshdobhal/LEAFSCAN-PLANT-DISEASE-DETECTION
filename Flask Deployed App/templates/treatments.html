@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import product_card with context %}
+{% set title = "Treatments" %}
+{% block description %}Treatments for {{ stats.diseases }} leaf diseases and fertilisers for healthy plants across {{ stats.crops }} crops.{% endblock %}
+{% block content %}
+<div class="container section">
+  <h1>Treatments &amp; fertilisers</h1>
+  <p class="lead">One suggested product for each condition the model can detect. Links go to third-party shops:
+    follow label instructions and local agricultural advice.</p>
+
+  {# Filters only appear with JavaScript; without it, every product is listed. #}
+  <div class="filters js-only" data-filters>
+    <label class="field">
+      <span class="field__label">Search</span>
+      <input class="input" type="search" placeholder="Crop, disease or product" data-search autocomplete="off">
+    </label>
+    <div class="segmented" role="group" aria-label="Product type">
+      <button type="button" aria-pressed="true" data-kind="all">All</button>
+      <button type="button" aria-pressed="false" data-kind="treatment">Disease treatments</button>
+      <button type="button" aria-pressed="false" data-kind="fertiliser">Fertilisers</button>
+    </div>
+    <div class="chips" role="group" aria-label="Crop">
+      <button class="chip-btn" type="button" aria-pressed="true" data-crop="all">All crops</button>
+      {% for crop in crops %}
+      <button class="chip-btn" type="button" aria-pressed="false" data-crop="{{ crop.slug }}">{{ crop.name }}</button>
+      {% endfor %}
+    </div>
+    <p class="hint" aria-live="polite" data-count>{{ products | length }} products</p>
+  </div>
+
+  <div class="product-grid" data-products>
+    {% for c in products %}{{ product_card(c, heading_level=2) }}{% endfor %}
+  </div>
+  <p class="empty" data-empty hidden>No products match. Try another crop or search term.</p>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ asset('js/treatments.js') }}" defer></script>{% endblock %}

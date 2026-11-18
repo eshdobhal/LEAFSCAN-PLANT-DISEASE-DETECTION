@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import status_chip, product_card with context %}
+{% set title = c.label %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<div class="container section result">
+  <p class="eyebrow">Diagnosis</p>
+
+  <div class="verdict">
+    <img class="verdict__photo" src="{{ photo }}" alt="Your leaf photo">
+    <div class="card verdict__card">
+      {{ status_chip(c) }}
+      <h1 class="verdict__title">
+        {% if c.crop %}<span class="verdict__crop">{{ c.crop }}</span>{% endif %}
+        {{ c.condition }}
+      </h1>
+      <p class="verdict__confidence">
+        Model confidence <strong>{{ "%.0f" | format(confidence * 100) }}%</strong>
+      </p>
+      {% if low_confidence %}
+      <div class="banner banner--warn" role="status">
+        {{ icon("alert") }}
+        <p><strong>The model isn't sure.</strong> Retake in daylight with a single leaf filling the frame.</p>
+      </div>
+      {% endif %}
+      {% if c.is_background %}
+      <p>We couldn't find a leaf in this photo. Try again with one leaf filling most of the frame.</p>
+      {% endif %}
+      <div class="cluster no-print">
+        <a class="btn btn--primary" href="{{ url_for('diagnose') }}">{{ icon("refresh") }}Diagnose another leaf</a>
+        <button class="btn btn--ghost js-only" type="button" data-print>Print / save as PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="card" aria-labelledby="top3-title">
+    <h2 id="top3-title" class="h3">Top 3 possibilities</h2>
+    <ol class="bars">
+      {% for item, p in top3 %}
+      <li class="bars__row">
+        <span class="bars__label" id="bar-{{ loop.index }}">{{ item.label }}</span>
+        <progress class="bars__bar{% if loop.first %} bars__bar--top{% endif %}" max="1" value="{{ '%.4f' | format(p) }}" aria-labelledby="bar-{{ loop.index }}"></progress>
+        <span class="bars__value">{{ "%.1f" | format(p * 100) }}%</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  {% if not c.is_background %}
+  <div class="result__grid">
+    <section class="card prose" aria-labelledby="about-title">
+      <h2 id="about-title" class="h3">{{ "Growing tips" if c.is_healthy else "About this condition" }}</h2>
+      {% if c.description | length > 1 %}
+      <ul>{% for line in c.description %}<li>{{ line }}</li>{% endfor %}</ul>
+      {% else %}
+      {% for line in c.description %}<p>{{ line }}</p>{% endfor %}
+      {% endif %}
+    </section>
+
+    <section class="card prose" aria-labelledby="todo-title">
+      <h2 id="todo-title" class="h3">{{ "Benefits" if c.is_healthy else "What to do" }}</h2>
+      {% if c.steps | length > 1 %}
+      <ul>{% for line in c.steps %}<li>{{ line }}</li>{% endfor %}</ul>
+      {% else %}
+      {% for line in c.steps %}<p>{{ line }}</p>{% endfor %}
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="result__grid">
+    {% if c.ref_image %}
+    <figure class="card ref" data-ref>
+      <img src="{{ c.ref_image }}" alt="Reference photo of {{ c.label | lower }}" loading="lazy" referrerpolicy="no-referrer" data-ref-img>
+      <figcaption class="hint">Reference photo from an external source, for comparison.</figcaption>
+    </figure>
+    {% endif %}
+
+    {% if c.product_link %}
+    <section aria-labelledby="product-title">
+      <h2 id="product-title" class="h3">{{ "Suggested fertiliser" if c.is_healthy else "Suggested treatment" }}</h2>
+      {{ product_card(c, heading_level=3) }}
+      <p class="hint">Product links are third-party. Follow label instructions and local agricultural advice.</p>
+    </section>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ asset('js/result.js') }}" defer></script>{% endblock %}
