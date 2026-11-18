@@ -19,11 +19,20 @@ from common import (CLASSES, EVAL_TF, ROOT, RUNS, TRAIN_TF, LeafDataset, build_m
                     predict_probs)
 
 
-def class_balanced_sampler(items, field_boost):
-    """Every class gets the same chance per draw within its domain; field images are drawn
-    `field_boost` times more often than their raw count, because they are rare but matter most."""
+def balanced_sampler(items, field_share):
+    """Decides how often each image is drawn.
+
+    - `field_share` of all draws are field (PlantDoc) photos, the rest lab photos (+ background),
+      so the ~2,000 field photos are seen often without crowding out the 40,000 lab photos.
+    - Within a domain, each image's weight is 1/sqrt(class size): rare classes are boosted
+      (better recall) but big classes still contribute variety.
+    """
     counts = Counter((label, domain) for _, label, domain in items)
-    weights = [(field_boost if domain == "field" else 1.0) / counts[(label, domain)] for _, label, domain in items]
+    totals = Counter()
+    for (label, domain), n in counts.items():
+        totals[domain] += n ** 0.5  # sum over classes of count / sqrt(count)
+    share = {"field": field_share, "lab": 1.0 - field_share}
+    weights = [share[domain] / totals[domain] / counts[(label, domain)] ** 0.5 for _, label, domain in items]
     return WeightedRandomSampler(weights, num_samples=len(items), replacement=True)
 
 
@@ -38,7 +47,7 @@ def main():
     ap.add_argument("--epochs", type=int, default=8)
     ap.add_argument("--batch", type=int, default=32)  # fits a 6 GB GPU
     ap.add_argument("--lr", type=float, default=2e-4)
-    ap.add_argument("--field-boost", type=float, default=6.0)
+    ap.add_argument("--field-share", type=float, default=0.3)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--name", default="caformer_s18")
     args = ap.parse_args()
@@ -51,7 +60,7 @@ def main():
     print(f"train {len(train_items)} | lab val {len(splits['val_lab'])} | field val {len(splits['val_field'])}")
 
     loader = DataLoader(LeafDataset(train_items, TRAIN_TF), batch_size=args.batch,
-                        sampler=class_balanced_sampler(train_items, args.field_boost),
+                        sampler=balanced_sampler(train_items, args.field_share),
                         num_workers=args.workers, pin_memory=True, persistent_workers=True, drop_last=True)
 
     model = build_model(pretrained=True).to(device, memory_format=torch.channels_last)  # faster convs on GPU

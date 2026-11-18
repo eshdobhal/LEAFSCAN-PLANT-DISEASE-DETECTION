@@ -15,4 +15,6 @@ venv/
 # Training data, environments and run outputs (large)
 data/
 .venv-train/
-training/runs/
+training/runs/**/*.pt
+# The trained hybrid ships with the app (49 MB)
+!Flask Deployed App/leafscan_hybrid.pt

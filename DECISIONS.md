@@ -7,9 +7,11 @@ Every non-obvious choice made while rebuilding the original Plant-Disease-Detect
 
 - **Python 3.13 instead of 3.11.** This machine only has Python 3.10 and 3.13 (`py -0`). The code uses
   nothing newer than 3.11, and `scripts/make_assets.py` deliberately avoids 3.12-only f-string syntax.
-- **Model weights were not available** (not in the repo, not on disk). The app therefore ran in
-  **demo mode** for all testing: the real CNN architecture with seeded random weights. Everything
-  except prediction *accuracy* is exercised for real (preprocessing, softmax, top-3, templates, API).
+- **The original CNN's weights were never available** (not in the repo, not on disk), so it is only
+  exercised in demo mode (seeded random weights). The app's default model is now the **hybrid** trained
+  here (see "Hybrid model"), whose weights ship in the repo as `Flask Deployed App/leafscan_hybrid.pt`.
+- **Training hardware:** NVIDIA RTX 3050 Laptop GPU (6 GB), PyTorch 2.9.1 + CUDA 12.6, in a separate
+  `.venv-train` so the app's CPU-only environment stays small.
 - **Node.js is not installed**, so Lighthouse (`npx lighthouse`) could not be run. See "Quality checks".
 
 ## Backend
@@ -109,36 +111,172 @@ Computed from the tokens in `app.css` with the WCAG relative-luminance formula.
 
 `--accent` (`#7FB24A`, 2.3:1 on paper) is only used for decoration (list markers, illustrations), never text.
 
+## Hybrid model (CAFormer-S18)
+
+### Why this model
+
+Research summary (sources in the README): on PlantVillage, many CNNs and hybrids already exceed
+98-99%, so that number no longer separates models. The real gap is **field photos**: models trained only
+on PlantVillage drop to roughly 11-41% on PlantDoc field images, and the best published cross-domain
+result found was about 68%. What helps: (1) pre-training on a large general dataset, (2) training on
+some field images, (3) heavy augmentation, (4) architectures that combine local texture (convolution)
+with global context (attention).
+
+**CAFormer-S18** (MetaFormer family, Yu et al., 2022; timm `caformer_s18.sail_in22k_ft_in1k`) is a true
+hybrid: two convolutional stages (local lesion texture) followed by two self-attention stages (relations
+across the whole leaf). 24.4 M parameters, ImageNet-22k pre-training, fits a 6 GB GPU at batch 32 with
+bf16 autocast, and runs on CPU in about 35 ms per view. Larger hybrids (MaxViT, CoAtNet) were ruled out by
+the 6 GB GPU and CPU latency on a free server.
+
+### Data (built by `training/prepare_data.py`)
+
+| Split | Images | Source |
+|---|---|---|
+| train | 42,029 | PlantVillage official leaf-grouped train list (90%), background (70%), PlantDoc train (85%) |
+| val_lab | 4,473 | 10% of the PlantVillage train list + 10% of background (only for picking the epoch) |
+| val_field | 351 | 15% of PlantDoc train (only for picking the epoch) |
+| **test_lab** | **10,937** | PlantVillage official **leaf-grouped** test list + 20% of background |
+| **test_field** | **225** | PlantDoc test, minus 11 files byte-identical to PlantDoc training images |
+
+- **No leakage between photos of the same leaf**: PlantVillage contains several photos of each physical
+  leaf. Its maintainers publish a train/test split grouped by leaf (`splits/color_*.txt` on Hugging Face),
+  used as-is. A random split (as in the original project) inflates test accuracy.
+- **PlantDoc classes mapped** to the app's 39 classes (27 appear in PlantDoc). PlantDoc has no Orange,
+  Grape esca/leaf blight, Strawberry scorch, Peach/Cherry disease or Target spot photos, so those are
+  learned from lab photos only.
+- **Background class** ("no leaf"): 1,143 images from the Mendeley PlantVillage release. Only those images
+  were fetched, with HTTP range requests (`training/fetch_zip_subset.py`), because the connection here
+  (about 0.5 MB/s with frequent drops) could not finish 1-2 GB downloads in one go.
+
+### Training (`training/train_hybrid.py`)
+
+- AdamW, lr 2e-4, weight decay 0.05, 1 epoch linear warm-up then cosine decay, 8 epochs, batch 32,
+  bf16 autocast, gradient clipping 1.0, label smoothing 0.1 (better-calibrated confidence).
+- Augmentation: RandomResizedCrop(0.35-1.0), horizontal + vertical flips, TrivialAugmentWide, Gaussian
+  blur, RandomErasing: aimed at making lab photos look more like messy field photos.
+- **Sampling:** 30% of each epoch's draws are field photos, 70% lab; within a domain each class is
+  weighted by 1/sqrt(size), lifting rare classes (recall) without discarding the variety of big ones.
+- **First attempt discarded:** the first run multiplied field weights per class, so about 80% of draws
+  came from the ~2,000 field photos and lab validation accuracy stalled at 95% (log kept in
+  `training/runs/train_v1_unbalanced.log`). Fixed and retrained from scratch.
+- The epoch with the best mean of lab and field validation macro-recall is kept (epoch 7), saved in fp16
+  (49 MB). Training time: 72 minutes on the RTX 3050.
+
+| Epoch | Train loss | Lab val acc | Lab val recall | Field val acc | Field val recall |
+|---|---|---|---|---|---|
+| 1 | 1.325 | 94.52% | 93.67% | 62.39% | 60.19% |
+| 2 | 1.070 | 97.32% | 96.83% | 67.52% | 66.55% |
+| 3 | 0.963 | 97.47% | 97.23% | 69.23% | 67.85% |
+| 4 | 0.878 | 98.75% | 98.77% | 67.52% | 63.48% |
+| 5 | 0.802 | 99.02% | 98.99% | 71.23% | 67.43% |
+| 6 | 0.749 | 99.37% | 99.19% | 75.21% | 72.18% |
+| 7 | 0.714 | 99.64% | 99.56% | 76.07% | 73.02% |
+| 8 | 0.704 | 99.73% | 99.65% | 76.07% | 72.94% |
+
+### Results on the held-out test sets (`training/evaluate.py`)
+
+| Test set | Images | Accuracy | Macro recall | Macro precision | Macro F1 | >=80% confident | Accuracy when confident |
+|---|---|---|---|---|---|---|---|
+| Lab (PlantVillage, leaf-grouped) | 10,937 | 99.40% | 99.27% | 99.32% | 99.29% | 99% | 99.71% |
+| Lab + mirror TTA | 10,937 | **99.45%** | **99.34%** | 99.31% | 99.32% | 99% | 99.72% |
+| Field (PlantDoc test) | 225 | 68.00% | 67.30% | 70.42% | 66.22% | 74% | 78.44% |
+| Field + mirror TTA | 225 | **68.44%** | **67.76%** | 70.89% | 66.62% | 70% | 80.89% |
+
+How to read this:
+- **Lab**: 99.3% macro-recall means that, averaged over conditions, the model finds 99.3% of the photos
+  of each one. Lowest: Corn Cercospora/gray leaf spot 94.4%, Peach healthy 97.2%, Corn northern leaf
+  blight 97.3%.
+- **Field** is the honest number for a phone photo in a garden. 68% is in line with the best published
+  PlantDoc classification results found (around 68-70%) and far above PlantVillage-only training
+  (11-41%). Your PBL ResNet-18 scored 0.544 on field photos (different 21-class set, so only roughly
+  comparable). The field test has only 225 images (3-12 per class), so the 95% confidence interval is
+  about +/-6 percentage points.
+- **The 80% threshold works as intended in the field**: when the model is at least 80% sure (70% of
+  field photos) it is right 81% of the time; the other 30% get the "not sure, retake" banner.
+- Weakest field classes: Tomato mosaic virus 2/10, Corn gray leaf spot 1/3, Tomato healthy 3/8, Cherry
+  healthy 4/10. Full per-class numbers: `training/runs/caformer_s18/test_metrics.json`.
+
+**"Best in the market" is not a claim this project can honestly make**: there is no shared field benchmark
+across commercial apps, and PlantDoc's test set is small. What can be claimed: on a leak-free split the
+hybrid matches the top of published lab results and sits in the top range of published field results, and
+the evaluation code is included so anyone can re-run it.
+
+### What would improve field accuracy further
+
+More field photos (the biggest factor), higher input resolution (288-384 px), longer training, or an
+ensemble of two different hybrids (costs CPU time).
+
 ## Latency (CPU)
 
-`scripts/benchmark.py`, 20 predictions of one test image, this laptop (16 logical CPUs, torch 2.9.1 CPU,
-4 threads): **median 23.1 ms** (min 22.2, max 34.9) for preprocess + forward pass + softmax.
-Measured in demo mode, but random weights don't change the amount of computation, so this is
-representative. Model warm-up at startup: 28 ms. "< 1 s" on the home page is conservative.
+`scripts/benchmark.py`, 20 predictions of one image, this laptop (16 logical CPUs, torch 2.9.1 CPU,
+4 threads):
 
-## Accuracy smoke test
+| Model | Median | Notes |
+|---|---|---|
+| Hybrid CAFormer-S18 + mirror TTA (default) | **68.8 ms** (min 65.9, max 75.3) | 2 views per photo |
+| Original CNN (random weights, same compute) | 23.1 ms | demo mode only |
 
-`scripts/benchmark.py` runs all 43 images in `test_images/` and checks the predicted class against the
-filename (spelling mistakes in filenames like `starwberry`, `soyaben`, `ceder`, `northen` are mapped;
-each filename was verified to match exactly one class).
+Set `TTA=0` to roughly halve the hybrid's time. "< 1 s" on the home page remains conservative.
 
-**Not yet measured with the real model**: the weights file was unavailable, so the run here used random
-weights (1/43 "matches", i.e. chance). After downloading the weights, run:
+## `test_images/` sanity check
 
-```powershell
-.\.venv\Scripts\python scripts\benchmark.py
-```
-
-and paste its Markdown table here. Template:
+`scripts/benchmark.py` with the hybrid: **41/43** filenames matched. **This is not a fair accuracy
+measure**: file hashes show 24 of the 43 images are in our training set, 6 in validation, 9 in the lab
+test set, and only 4 are not from PlantVillage. Both misses are web images outside PlantVillage:
+`tomato-mold.jpg` was predicted Tomato late blight at 53.5% (so the "not sure" banner shows), and
+`tomato_yellow_leaf_curl_virus2.jpg` was predicted Soybean healthy at 92.3%, a confident mistake.
 
 | File | Predicted class | Confidence | Match |
 |---|---|---|---|
-| Apple_scab.JPG | *(run benchmark.py)* | | |
+| apple_black_rot.JPG | Apple___Black_rot | 89.9% | yes |
+| Apple_ceder_apple_rust.JPG | Apple___Cedar_apple_rust | 90.2% | yes |
+| apple_healthy.JPG | Apple___healthy | 89.2% | yes |
+| Apple_scab.JPG | Apple___Apple_scab | 90.2% | yes |
+| background_without_leaves.jpg | Background_without_leaves | 89.7% | yes |
+| blueberry_healthy.JPG | Blueberry___healthy | 90.5% | yes |
+| cherry_healthy.JPG | Cherry___healthy | 90.3% | yes |
+| cherry_powdery_mildew.JPG | Cherry___Powdery_mildew | 89.9% | yes |
+| corn_cercospora_leaf.JPG | Corn___Cercospora_leaf_spot Gray_leaf_spot | 88.4% | yes |
+| corn_common_rust.JPG | Corn___Common_rust | 89.9% | yes |
+| corn_healthy.jpg | Corn___healthy | 90.2% | yes |
+| corn_northen_leaf_blight.JPG | Corn___Northern_Leaf_Blight | 89.5% | yes |
+| grape_black_rot.JPG | Grape___Black_rot | 90.1% | yes |
+| Grape_esca.JPG | Grape___Esca_(Black_Measles) | 90.3% | yes |
+| grape_healthy.JPG | Grape___healthy | 90.6% | yes |
+| grape_leaf_blight.JPG | Grape___Leaf_blight_(Isariopsis_Leaf_Spot) | 90.1% | yes |
+| orange_haunglongbing.JPG | Orange___Haunglongbing_(Citrus_greening) | 90.3% | yes |
+| peach_bacterial_spot.JPG | Peach___Bacterial_spot | 90.4% | yes |
+| peach_healthy.JPG | Peach___healthy | 89.9% | yes |
+| pepper_bacterial_spot.JPG | Pepper,_bell___Bacterial_spot | 89.9% | yes |
+| pepper_bell_healthy.JPG | Pepper,_bell___healthy | 90.3% | yes |
+| potato_early_blight.JPG | Potato___Early_blight | 90.7% | yes |
+| potato_healthy.JPG | Potato___healthy | 89.1% | yes |
+| potato_late_blight.JPG | Potato___Late_blight | 90.2% | yes |
+| raspberry_healthy.JPG | Raspberry___healthy | 90.3% | yes |
+| soyaben healthy.JPG | Soybean___healthy | 90.4% | yes |
+| squash_powdery_mildew.JPG | Squash___Powdery_mildew | 90.1% | yes |
+| starwberry_healthy.JPG | Strawberry___healthy | 90.2% | yes |
+| starwberry_leaf_scorch.JPG | Strawberry___Leaf_scorch | 90.1% | yes |
+| tomato-bacterial-spot2.jpg | Tomato___Bacterial_spot | 88.7% | yes |
+| tomato-leaf-curl-virus3.jpg | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 89.9% | yes |
+| tomato-mold.jpg | Tomato___Late_blight | 53.5% | no |
+| tomato_bacterial_spot.JPG | Tomato___Bacterial_spot | 90.4% | yes |
+| tomato_early_blight.JPG | Tomato___Early_blight | 90.2% | yes |
+| tomato_healthy.JPG | Tomato___healthy | 90.3% | yes |
+| tomato_late_blight.JPG | Tomato___Late_blight | 90.4% | yes |
+| tomato_leaf_mold.JPG | Tomato___Leaf_Mold | 90.2% | yes |
+| tomato_mosaic_virus.JPG | Tomato___Tomato_mosaic_virus | 90.3% | yes |
+| tomato_septoria_leaf_spot.JPG | Tomato___Septoria_leaf_spot | 89.7% | yes |
+| tomato_spider_mites_two_spotted_spider_mites.JPG | Tomato___Spider_mites Two-spotted_spider_mite | 90.6% | yes |
+| tomato_target_spot.JPG | Tomato___Target_Spot | 88.5% | yes |
+| tomato_yellow_leaf_curl_virus.JPG | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 90.3% | yes |
+| tomato_yellow_leaf_curl_virus2.jpg | Soybean___healthy | 92.3% | no |
 
 ## Quality checks performed
 
-- **pytest**: 28 passed, 5 skipped (the 5 "expected class in the HTML" assertions skip themselves in demo
-  mode; they run automatically once weights are present). Covers every page, 301/307 redirects, 5 real
+- **pytest**: 36 passed with the hybrid loaded (in demo mode the 5 "expected class in the HTML"
+  assertions skip themselves). Also covers model selection (`MODEL_KIND=auto` falls back to the CNN),
+  the hybrid's top-3 output and its ImageNet normalisation. Covers every page, 301/307 redirects, 5 real
   uploads, RGBA/greyscale PNGs, missing/empty files, `.txt` renamed `.jpg` (400), wrong extension,
   path-traversal filename, 9 MB upload (413), API schema and JSON errors (400/413/405), security headers,
   no third-party assets, catalog flags.

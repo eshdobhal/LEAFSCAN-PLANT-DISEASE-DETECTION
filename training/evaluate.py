@@ -39,7 +39,7 @@ def main():
             results[f"{split}{'_tta' if tta else ''}"] = m
 
     (RUNS / args.name / "test_metrics.json").write_text(json.dumps(results, indent=1))
-    print("| Test set | Images | Accuracy | Macro recall | Macro precision | Macro F1 | ≥80% confident | Accuracy when confident |")
+    print("| Test set | Images | Accuracy | Macro recall | Macro precision | Macro F1 | >=80% confident | Accuracy when confident |")
     print("|---|---|---|---|---|---|---|---|")
     for key, m in results.items():
         print(f"| {key} | {m['n']} | {m['accuracy']:.2%} | {m['macro_recall']:.2%} | {m['macro_precision']:.2%} | "

@@ -3,6 +3,15 @@
 **Leaf disease diagnosis in seconds.** Photograph a single leaf; LeafScan names the most likely of
 26 diseases across 14 crops, says how confident it is, and gives practical next steps.
 
+Powered by a **hybrid CNN-Transformer (CAFormer-S18)** fine-tuned on lab *and* field photos:
+
+| Held-out test set | Accuracy | Macro recall |
+|---|---|---|
+| PlantVillage lab photos (10,937, leaf-grouped split, no leakage) | **99.45%** | **99.34%** |
+| PlantDoc real field photos (225) | **68.4%** | **67.8%** |
+
+Details, per-class numbers and caveats: [DECISIONS.md](DECISIONS.md#hybrid-model-caformer-s18).
+
 <img src="screenshots/home-desktop-light.png" alt="LeafScan home page" width="720">
 
 <p>
@@ -33,11 +42,12 @@ py -3.13 -m venv .venv            # Python 3.11+ works; use whichever you have
 pip install -r "Flask Deployed App\requirements.txt"
 ```
 
-**Download the model weights** (≈200 MB, not stored in git): get `plant_disease_model_1_latest.pt`
-from the original project's
+The hybrid model's weights are included (`Flask Deployed App\leafscan_hybrid.pt`, 49 MB), so the
+app works straight away. The original project's CNN is still supported: download
+`plant_disease_model_1_latest.pt` from its
 [Google Drive folder](https://drive.google.com/drive/folders/1ewJWAiduGuld_9oGSrTuLumg9y62qS6A?usp=share_link)
-and put it in `Flask Deployed App\`. (A file named `plant_disease_model_1.pt` is also picked up.)
-Without it the app still runs in **demo mode**, with a banner and random predictions.
+into `Flask Deployed App\` and set `$env:MODEL_KIND = "cnn"`. If the chosen weights are missing, the app
+runs in **demo mode** with a banner and random predictions.
 
 ```powershell
 cd "Flask Deployed App"
@@ -60,6 +70,8 @@ Flask Deployed App/
   templates/        base.html, partials/, home, diagnose, result, treatments, about, error
   static/           css/app.css, js/*.js, icons.svg, img/, fonts/, site.webmanifest
   tests/            pytest suite
+  leafscan_hybrid.pt  trained hybrid weights (fp16, 49 MB)
+training/           data fetch, split preparation, hybrid training and evaluation
 scripts/            make_assets.py, screenshots.py, check_html.py, benchmark.py
 screenshots/        375 px and 1440 px, light and dark, every page
 DECISIONS.md        why things are the way they are
@@ -69,9 +81,10 @@ CODE_WALKTHROUGH.md file-by-file explanation
 ## How a prediction works
 
 1. The photo is validated in memory (extension, Pillow decode, 8 MB limit) and rotated per its EXIF data.
-2. It is converted to RGB, resized so the short side is 255 px, centre-cropped to 224 × 224 and turned
-   into a tensor: exactly the training transform.
-3. The CNN (4 convolution blocks + 2 dense layers) outputs 39 scores; softmax turns them into probabilities.
+2. It is converted to RGB, resized so the short side is 256 px, centre-cropped to 224 × 224, turned into a
+   tensor and normalised with ImageNet mean/std: exactly the evaluation transform used in training.
+3. The hybrid (2 convolution stages, then 2 self-attention stages) scores the photo and its mirror image;
+   softmax turns each into 39 probabilities and the two are averaged.
 4. The top 3 classes and their probabilities are looked up in the catalog built from the CSVs.
 5. If the best probability is below `CONFIDENCE_THRESHOLD`, the page warns that the model isn't sure.
 
@@ -79,6 +92,9 @@ CODE_WALKTHROUGH.md file-by-file explanation
 
 | Variable | Default | Meaning |
 |---|---|---|
+| `MODEL_KIND` | `auto` | `hybrid`, `cnn`, or `auto` (hybrid if its weights exist, else CNN) |
+| `HYBRID_MODEL_PATH` | `Flask Deployed App/leafscan_hybrid.pt` | Hybrid weights |
+| `TTA` | on | `0` = skip the mirror-image pass (about 2x faster) |
 | `MODEL_PATH` | `Flask Deployed App/plant_disease_model_1_latest.pt` | Weights file |
 | `REQUIRE_MODEL` | off | `1` = refuse to start without weights (use in production) |
 | `CONFIDENCE_THRESHOLD` | `0.80` | Below this, show the "not sure" warning |
@@ -119,9 +135,44 @@ waitress-serve --listen=0.0.0.0:8000 --threads=4 --call app:create_app
 
 The live camera needs HTTPS (or `localhost`); put the app behind an HTTPS proxy in production.
 
+## Training the hybrid yourself
+
+Needs an NVIDIA GPU (tested on an RTX 3050 6 GB, 72 minutes) and about 3 GB of downloads.
+
+```powershell
+py -3.13 -m venv .venv-train
+.\.venv-train\Scripts\python -m pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cu126
+.\.venv-train\Scripts\python -m pip install timm==1.0.20 "huggingface_hub<1.0" scikit-learn pillow
+```
+
+1. **Data** into `data\` (git-ignored): PlantVillage colour images + split lists from
+   [Hugging Face mohanty/PlantVillage](https://huggingface.co/datasets/mohanty/PlantVillage)
+   (`python training\fetch_zip_subset.py <data.zip URL> data\hf_pv color/`, plus `splits/color_train.txt`
+   and `color_test.txt` into `data\hf_pv`), [PlantDoc](https://github.com/pratikkayal/PlantDoc-Dataset) into
+   `data\plantdoc`, and the `Background_without_leaves` folder of the
+   [Mendeley PlantVillage release](https://data.mendeley.com/datasets/tywbtsjrjv/1) into `data\mendeley`.
+2. `.\.venv-train\Scripts\python training\prepare_data.py` builds leak-free splits.
+3. `.\.venv-train\Scripts\python training\train_hybrid.py` trains and copies the best weights into the app.
+4. `.\.venv-train\Scripts\python training\evaluate.py` prints the test-set tables.
+
+## Research behind the model
+
+- Lab accuracy on PlantVillage is saturated (98-99%+ for many hybrids), e.g.
+  [PlantViT and hybrids, Frontiers 2025](https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2025.1522985/full),
+  [hybrid CNN-Transformer, Sci. Reports](https://www.nature.com/articles/s41598-025-34406-4),
+  [IEEE hybrid CNN-Transformer](https://ieeexplore.ieee.org/abstract/document/11072169/).
+- Field photos are the real test: PlantVillage-only models fall to 11-41% on PlantDoc
+  ([multi-crop benchmark](https://arxiv.org/pdf/2610.04456), [ConvGeM-next](https://pmc.ncbi.nlm.nih.gov/articles/PMC13201445/),
+  [domain-shift benchmark](https://github.com/Jenpoer/plant-disease-detection)); about 68% is the best
+  cross-domain figure found ([ViT + mixture of experts](https://www.researchgate.net/publication/393271735_Plant_disease_classification_in_the_wild_using_vision_transformers_and_mixture_of_experts)).
+- Mixing in field data, augmentation and pretrained hybrids/ensembles help most
+  ([Wiley 2026](https://onlinelibrary.wiley.com/doi/10.1111/jph.70264),
+  [ensembles + distillation](https://eprints.whiterose.ac.uk/id/eprint/233495/2/Deployable_Deep_Learning_for_Cross-Domain_Plant_Leaf_Disease_Detection_via_Ensemble_Learning_Knowledge_Distillation_and_Quantization.pdf),
+  [MobilePlantViT](https://arxiv.org/pdf/2503.16628)).
+
 ## Limitations
 
-- Trained on PlantVillage lab photos (single leaf, plain background); field photos are harder.
+- About 68% accuracy on real field photos: always check the confidence; under 80% the app says it isn't sure.
 - Only the 38 listed leaf conditions are known; anything else is mapped to the closest one.
 - Product suggestions and reference photos come from the original project's CSVs and are not verified;
   reference photos are hot-linked and are hidden automatically if their host blocks them.
@@ -134,4 +185,9 @@ Model and dataset pipeline based on the open-source
 Manthan Bhikadiya & Krishna Baldaniya. The original training notebook is in `Model/`.
 Fonts: Fraunces and Inter (SIL Open Font License 1.1). Icons adapted from Lucide (ISC).
 Crop and product illustrations were drawn for this project (`scripts/make_assets.py`).
-Check the original repository's licence terms before redistributing the model weights.
+Check the original repository's licence terms before redistributing its CNN weights.
+Hybrid model: CAFormer-S18 architecture and ImageNet pre-trained weights from
+[timm](https://github.com/huggingface/pytorch-image-models) (Apache-2.0; Yu et al., "MetaFormer Baselines
+for Vision", 2022), fine-tuned on [PlantVillage](https://github.com/spMohanty/PlantVillage-Dataset)
+(Hughes & Salathé, 2015), [PlantDoc](https://github.com/pratikkayal/PlantDoc-Dataset) (Singh et al., 2020,
+CC BY 4.0) and the [Mendeley PlantVillage release](https://data.mendeley.com/datasets/tywbtsjrjv/1) (background class).

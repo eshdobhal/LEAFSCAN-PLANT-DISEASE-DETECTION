@@ -14,10 +14,21 @@
   </ul>
 
   <h2>How the model works</h2>
+  {% if model_kind == "hybrid" %}
+  <p>The diagnosis comes from a <strong>hybrid CNN-Transformer</strong> (CAFormer-S18). Its first layers are
+    convolutions, which are good at local texture such as spots, rings and discoloured veins; its later layers use
+    self-attention, which relates distant parts of the leaf to each other.</p>
+  <ul>
+    <li>It started from weights pre-trained on ImageNet-22k (14 million everyday photos), then was fine-tuned on
+      <strong>PlantVillage</strong> lab photos plus <strong>PlantDoc</strong> field photos taken in real gardens and farms,
+      with heavy augmentation (cropping, lighting, blur, occlusion) so it copes better outdoors.</li>
+    <li>It looks at your photo and its mirror image and averages the two answers.</li>
+  {% else %}
   <p>The diagnosis comes from a <strong>convolutional neural network</strong> (CNN): a type of model that learns
     visual patterns, such as spots, rings and discoloured veins, directly from example photos.</p>
   <ul>
     <li>It was trained on the public <strong>PlantVillage</strong> dataset: tens of thousands of photos of single leaves on plain backgrounds.</li>
+  {% endif %}
     <li>It chooses between <strong>{{ stats.classes }} classes</strong>: {{ stats.diseases }} diseases,
       {{ stats.conditions - stats.diseases }} "healthy" classes, and one "no leaf in the photo" class.</li>
     <li>Your photo is resized and centre-cropped to 224 × 224 pixels, exactly as in training, then the network
@@ -29,7 +40,7 @@
   <h2>Limitations</h2>
   <ul>
     <li>It can only recognise the conditions listed above. A disease it has never seen will be reported as the closest one it knows.</li>
-    <li>Training photos were taken in a lab, so cluttered field photos, several leaves, or poor light lower accuracy.</li>
+    <li>Most training photos were taken in a lab. Cluttered field photos, several leaves, or poor light still lower accuracy, so check the confidence and retake if unsure.</li>
     <li>It looks at one leaf only. It can't see roots, stems, fruit, soil or weather, which an expert would consider.</li>
     <li>Product suggestions come from the original project's data and haven't been independently checked.</li>
   </ul>

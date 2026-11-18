@@ -16,8 +16,8 @@ sys.path.insert(0, str(ROOT / "Flask Deployed App"))
 
 from PIL import Image  # noqa: E402
 
+from app import load_predictor  # noqa: E402
 from config import Config  # noqa: E402
-from model import Predictor  # noqa: E402
 from CNN import idx_to_classes  # noqa: E402
 
 # Spelling mistakes in the test image filenames -> words used in the class names.
@@ -31,9 +31,10 @@ def words(text):
 
 
 def main():
-    predictor = Predictor(Config.MODEL_PATH)
+    config = {k: getattr(Config, k) for k in dir(Config) if k.isupper()}
+    predictor = load_predictor(config)  # the same model the app would use (MODEL_KIND)
     images = sorted(p for p in (ROOT / "test_images").iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"})
-    print(f"Model loaded: {predictor.model_loaded}\n")
+    print(f"Model: {predictor.name} | weights loaded: {predictor.model_loaded} | TTA: {predictor.tta}\n")
     print("| File | Predicted class | Confidence | Match |\n|---|---|---|---|")
     matches = 0
     for path in images:

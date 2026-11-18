@@ -1,0 +1,4 @@
+train 42029 | lab val 4473 | field val 351
+{"epoch": 1, "loss": 1.3728, "lab_acc": 0.8627, "lab_recall": 0.8403, "field_acc": 0.6866, "field_recall": 0.6614, "score": 0.7508, "minutes": 10.387}
+{"epoch": 2, "loss": 1.064, "lab_acc": 0.932, "lab_recall": 0.9412, "field_acc": 0.6923, "field_recall": 0.6599, "score": 0.8005, "minutes": 8.9182}
+{"epoch": 3, "loss": 0.9349, "lab_acc": 0.951, "lab_recall": 0.9497, "field_acc": 0.7009, "field_recall": 0.6839, "score": 0.8168, "minutes": 8.9063}

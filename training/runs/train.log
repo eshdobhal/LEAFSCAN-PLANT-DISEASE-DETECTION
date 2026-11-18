@@ -1,0 +1,10 @@
+train 42029 | lab val 4473 | field val 351
+{"epoch": 1, "loss": 1.3253, "lab_acc": 0.9452, "lab_recall": 0.9367, "field_acc": 0.6239, "field_recall": 0.6019, "score": 0.7693, "minutes": 10.2823}
+{"epoch": 2, "loss": 1.0704, "lab_acc": 0.9732, "lab_recall": 0.9683, "field_acc": 0.6752, "field_recall": 0.6655, "score": 0.8169, "minutes": 8.9424}
+{"epoch": 3, "loss": 0.963, "lab_acc": 0.9747, "lab_recall": 0.9723, "field_acc": 0.6923, "field_recall": 0.6785, "score": 0.8254, "minutes": 8.8897}
+{"epoch": 4, "loss": 0.8777, "lab_acc": 0.9875, "lab_recall": 0.9877, "field_acc": 0.6752, "field_recall": 0.6348, "score": 0.8113, "minutes": 8.8726}
+{"epoch": 5, "loss": 0.8017, "lab_acc": 0.9902, "lab_recall": 0.9899, "field_acc": 0.7123, "field_recall": 0.6743, "score": 0.8321, "minutes": 8.8737}
+{"epoch": 6, "loss": 0.7491, "lab_acc": 0.9937, "lab_recall": 0.9919, "field_acc": 0.7521, "field_recall": 0.7218, "score": 0.8569, "minutes": 8.8662}
+{"epoch": 7, "loss": 0.7143, "lab_acc": 0.9964, "lab_recall": 0.9956, "field_acc": 0.7607, "field_recall": 0.7302, "score": 0.8629, "minutes": 8.873}
+{"epoch": 8, "loss": 0.7043, "lab_acc": 0.9973, "lab_recall": 0.9965, "field_acc": 0.7607, "field_recall": 0.7294, "score": 0.8629, "minutes": 8.8727}
+best validation score 0.8629; weights copied to C:\Users\Esh\Downloads\Plant-Disease-Detection-main\Plant-Disease-Detection-main\Flask Deployed App\leafscan_hybrid.pt
