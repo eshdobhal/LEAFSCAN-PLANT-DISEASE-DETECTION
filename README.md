@@ -3,12 +3,13 @@
 **Leaf disease diagnosis in seconds.** Photograph a single leaf; LeafScan names the most likely of
 26 diseases across 14 crops, says how confident it is, and gives practical next steps.
 
-Powered by a **hybrid CNN-Transformer (CAFormer-S18)** fine-tuned on lab *and* field photos:
+Powered by an **ensemble of two hybrid CNN-Transformers (CAFormer-S18 at 224 px and 288 px)**
+fine-tuned on lab *and* field photos:
 
 | Held-out test set | Accuracy | Macro recall |
 |---|---|---|
-| PlantVillage lab photos (10,937, leaf-grouped split, no leakage) | **99.45%** | **99.34%** |
-| PlantDoc real field photos (225) | **68.4%** | **67.8%** |
+| PlantVillage lab photos (10,937, leaf-grouped split, no leakage) | **99.63%** | **99.53%** |
+| PlantDoc real field photos (225) | **71.1%** | **70.4%** |
 
 Details, per-class numbers and caveats: [DECISIONS.md](DECISIONS.md#hybrid-model-caformer-s18).
 
@@ -42,8 +43,8 @@ py -3.13 -m venv .venv            # Python 3.11+ works; use whichever you have
 pip install -r "Flask Deployed App\requirements.txt"
 ```
 
-The hybrid model's weights are included (`Flask Deployed App\leafscan_hybrid.pt`, 49 MB), so the
-app works straight away. The original project's CNN is still supported: download
+The hybrid models' weights are included (`Flask Deployed App\leafscan_hybrid.pt` and
+`leafscan_hybrid_288.pt`, 49 MB each), so the app works straight away. The original project's CNN is still supported: download
 `plant_disease_model_1_latest.pt` from its
 [Google Drive folder](https://drive.google.com/drive/folders/1ewJWAiduGuld_9oGSrTuLumg9y62qS6A?usp=share_link)
 into `Flask Deployed App\` and set `$env:MODEL_KIND = "cnn"`. If the chosen weights are missing, the app
@@ -62,7 +63,7 @@ Debug mode with auto-reload: `$env:FLASK_DEBUG = "1"; flask --app app run`.
 Flask Deployed App/
   app.py            create_app(): routes, upload validation, security headers, error pages
   config.py         every setting (env-overridable): model path, threshold, upload limit, app name
-  model.py          loads the CNN once; preprocess() and Predictor.predict()
+  model.py          loads the model(s) once; make_transform(), preprocess() and Predictor.predict()
   catalog.py        reads both CSVs once into Condition objects (names, flags, text, product)
   CNN.py            the original network architecture and class list (unchanged)
   wsgi.py, Procfile production entry points
@@ -70,7 +71,7 @@ Flask Deployed App/
   templates/        base.html, partials/, home, diagnose, result, treatments, about, error
   static/           css/app.css, js/*.js, icons.svg, img/, fonts/, site.webmanifest
   tests/            pytest suite
-  leafscan_hybrid.pt  trained hybrid weights (fp16, 49 MB)
+  leafscan_hybrid.pt, leafscan_hybrid_288.pt  trained hybrid weights (fp16, 49 MB each)
 training/           data fetch, split preparation, hybrid training and evaluation
 scripts/            make_assets.py, screenshots.py, check_html.py, benchmark.py
 screenshots/        375 px and 1440 px, light and dark, every page
@@ -81,10 +82,11 @@ CODE_WALKTHROUGH.md file-by-file explanation
 ## How a prediction works
 
 1. The photo is validated in memory (extension, Pillow decode, 8 MB limit) and rotated per its EXIF data.
-2. It is converted to RGB, resized so the short side is 256 px, centre-cropped to 224 × 224, turned into a
-   tensor and normalised with ImageNet mean/std: exactly the evaluation transform used in training.
-3. The hybrid (2 convolution stages, then 2 self-attention stages) scores the photo and its mirror image;
-   softmax turns each into 39 probabilities and the two are averaged.
+2. It is converted to RGB and prepared twice, exactly as in training: short side 256 px, centre crop
+   224 × 224 for the first model; short side 329 px, centre crop 288 × 288 for the second. Both are turned
+   into tensors and normalised with ImageNet mean/std.
+3. Each hybrid (2 convolution stages, then 2 self-attention stages) scores the photo and its mirror image;
+   softmax turns each of the 4 answers into 39 probabilities, and the 4 are averaged.
 4. The top 3 classes and their probabilities are looked up in the catalog built from the CSVs.
 5. If the best probability is below `CONFIDENCE_THRESHOLD`, the page warns that the model isn't sure.
 
@@ -93,7 +95,9 @@ CODE_WALKTHROUGH.md file-by-file explanation
 | Variable | Default | Meaning |
 |---|---|---|
 | `MODEL_KIND` | `auto` | `hybrid`, `cnn`, or `auto` (hybrid if its weights exist, else CNN) |
-| `HYBRID_MODEL_PATH` | `Flask Deployed App/leafscan_hybrid.pt` | Hybrid weights |
+| `HYBRID_MODEL_PATH` | `Flask Deployed App/leafscan_hybrid.pt` | 224 px hybrid weights |
+| `HYBRID_288_MODEL_PATH` | `Flask Deployed App/leafscan_hybrid_288.pt` | 288 px hybrid weights |
+| `ENSEMBLE` | on | `0` = use only the 224 px hybrid (about 190 ms → 70 ms per photo) |
 | `TTA` | on | `0` = skip the mirror-image pass (about 2x faster) |
 | `MODEL_PATH` | `Flask Deployed App/plant_disease_model_1_latest.pt` | Weights file |
 | `REQUIRE_MODEL` | off | `1` = refuse to start without weights (use in production) |
@@ -137,7 +141,8 @@ The live camera needs HTTPS (or `localhost`); put the app behind an HTTPS proxy 
 
 ## Training the hybrid yourself
 
-Needs an NVIDIA GPU (tested on an RTX 3050 6 GB, 72 minutes) and about 3 GB of downloads.
+Needs an NVIDIA GPU (tested on an RTX 3050 6 GB: 72 minutes at 224 px, 117 minutes at 288 px) and about
+3 GB of downloads.
 
 ```powershell
 py -3.13 -m venv .venv-train
@@ -152,8 +157,15 @@ py -3.13 -m venv .venv-train
    `data\plantdoc`, and the `Background_without_leaves` folder of the
    [Mendeley PlantVillage release](https://data.mendeley.com/datasets/tywbtsjrjv/1) into `data\mendeley`.
 2. `.\.venv-train\Scripts\python training\prepare_data.py` builds leak-free splits.
-3. `.\.venv-train\Scripts\python training\train_hybrid.py` trains and copies the best weights into the app.
-4. `.\.venv-train\Scripts\python training\evaluate.py` prints the test-set tables.
+3. `.\.venv-train\Scripts\python training\train_hybrid.py` trains the 224 px model and copies the best
+   weights into the app.
+4. The 288 px model: `$env:TRAIN_SIZE = "288"; .\.venv-train\Scripts\python training\train_hybrid.py
+   --name caformer_s18_288 --batch 20 --lr 1.5e-4 --no-copy`, then copy
+   `training\runs\caformer_s18_288\best.pt` to `Flask Deployed App\leafscan_hybrid_288.pt`
+   (and `Remove-Item Env:TRAIN_SIZE` afterwards).
+5. `.\.venv-train\Scripts\python training\compare_models.py` compares 224 / 288 / ensemble on the
+   validation sets; `.\.venv-train\Scripts\python training\evaluate.py --runs caformer_s18:224
+   caformer_s18_288:288 --name ensemble` prints the test-set tables.
 
 ## Research behind the model
 
@@ -172,7 +184,8 @@ py -3.13 -m venv .venv-train
 
 ## Limitations
 
-- About 68% accuracy on real field photos: always check the confidence; under 80% the app says it isn't sure.
+- About 71% accuracy on real field photos: always check the confidence; under 80% the app says it isn't
+  sure (when it is at least 80% sure on a field photo, it is right about 84% of the time).
 - Only the 38 listed leaf conditions are known; anything else is mapped to the closest one.
 - Product suggestions and reference photos come from the original project's CSVs and are not verified;
   reference photos are hot-linked and are hidden automatically if their host blocks them.

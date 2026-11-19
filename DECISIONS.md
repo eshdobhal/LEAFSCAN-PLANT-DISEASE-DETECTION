@@ -9,7 +9,8 @@ Every non-obvious choice made while rebuilding the original Plant-Disease-Detect
   nothing newer than 3.11, and `scripts/make_assets.py` deliberately avoids 3.12-only f-string syntax.
 - **The original CNN's weights were never available** (not in the repo, not on disk), so it is only
   exercised in demo mode (seeded random weights). The app's default model is now the **hybrid** trained
-  here (see "Hybrid model"), whose weights ship in the repo as `Flask Deployed App/leafscan_hybrid.pt`.
+  here (see "Hybrid model"), whose weights ship in the repo as `Flask Deployed App/leafscan_hybrid.pt` (224 px) and
+  `leafscan_hybrid_288.pt` (288 px); the app averages the two (an ensemble).
 - **Training hardware:** NVIDIA RTX 3050 Laptop GPU (6 GB), PyTorch 2.9.1 + CUDA 12.6, in a separate
   `.venv-train` so the app's CPU-only environment stays small.
 - **Node.js is not installed**, so Lighthouse (`npx lighthouse`) could not be run. See "Quality checks".
@@ -173,7 +174,9 @@ the 6 GB GPU and CPU latency on a free server.
 | 7 | 0.714 | 99.64% | 99.56% | 76.07% | 73.02% |
 | 8 | 0.704 | 99.73% | 99.65% | 76.07% | 72.94% |
 
-### Results on the held-out test sets (`training/evaluate.py`)
+### Results of the first (224 px) model on the held-out test sets (`training/evaluate.py`)
+
+These are the single 224 px model's numbers; the shipped ensemble is in the next section.
 
 | Test set | Images | Accuracy | Macro recall | Macro precision | Macro F1 | >=80% confident | Accuracy when confident |
 |---|---|---|---|---|---|---|---|
@@ -199,12 +202,71 @@ How to read this:
 **"Best in the market" is not a claim this project can honestly make**: there is no shared field benchmark
 across commercial apps, and PlantDoc's test set is small. What can be claimed: on a leak-free split the
 hybrid matches the top of published lab results and sits in the top range of published field results, and
-the evaluation code is included so anyone can re-run it.
+the evaluation code is included so anyone can re-run it. (The shipped ensemble reaches 71% on the
+same field test, see below.)
+
+### Second model at 288 px, and the shipped ensemble
+
+**Why:** small lesions (bacterial spot, early mosaic mottling) cover few pixels at 224 px; a larger input
+was the cheapest next step on the "what would improve" list.
+
+**Training:** same script and recipe, `TRAIN_SIZE=288` (resize 329, crop 288), batch 20 (batch 24 peaked at
+5.2 of 6 GB), learning rate 1.5e-4 (scaled down with the batch), 8 epochs, 117 minutes. Best epoch 8.
+Run with `--no-copy` so it could not replace the app's model before it was compared.
+
+| Epoch | Train loss | Lab val acc | Lab val recall | Field val acc | Field val recall |
+|---|---|---|---|---|---|
+| 1 | 1.286 | 95.80% | 94.55% | 68.09% | 65.68% |
+| 2 | 1.052 | 95.75% | 95.61% | 65.24% | 63.58% |
+| 3 | 0.950 | 98.46% | 98.06% | 72.36% | 69.24% |
+| 4 | 0.867 | 98.84% | 98.81% | 70.09% | 65.97% |
+| 5 | 0.792 | 99.08% | 99.14% | 74.93% | 71.20% |
+| 6 | 0.743 | 99.55% | 99.44% | 76.07% | 72.30% |
+| 7 | 0.711 | 99.75% | 99.53% | 78.06% | 74.59% |
+| 8 | 0.702 | 99.73% | 99.52% | 77.78% | 74.72% |
+
+**On its own it was not better on the field test** (`training/runs/caformer_s18_288/test_metrics.json`,
+with TTA): accuracy 68.44% (same as 224 px), macro recall 67.82% (vs 67.76%), but lower precision (67.3% vs
+70.9%) and lower accuracy when confident (77.0% vs 80.9%). Only lab recall improved (99.56% vs 99.34%).
+It also costs about 1.65x the CPU time.
+
+**But the two models make different mistakes**, so averaging their probabilities (an ensemble) was tried.
+To keep the test sets honest, the choice between "224", "288" and "ensemble" was made on the
+**validation** sets (`training/compare_models.py`), and the test sets were then run once:
+
+| Validation (with TTA) | Field acc | Field recall | Field acc when >=80% sure | Lab acc | Lab recall |
+|---|---|---|---|---|---|
+| 224 px | 76.92% | 73.21% | 84.42% | 99.66% | 99.60% |
+| 288 px | 77.78% | 74.39% | 83.92% | 99.84% | 99.78% |
+| **Ensemble** | **78.63%** | **74.79%** | **87.50%** | 99.82% | 99.74% |
+
+The ensemble won on field photos, so it is the shipped model. Its **test** results
+(`training/evaluate.py --runs caformer_s18:224 caformer_s18_288:288 --name ensemble`, output in
+`training/runs/ensemble/test_summary.md`):
+
+| Test set | Images | Accuracy | Macro recall | Macro precision | Macro F1 | >=80% confident | Accuracy when confident |
+|---|---|---|---|---|---|---|---|
+| Lab (PlantVillage, leaf-grouped) + TTA | 10,937 | **99.63%** | **99.53%** | 99.45% | 99.49% | 99% | 99.85% |
+| Field (PlantDoc test) + TTA | 225 | **71.11%** | **70.36%** | 72.86% | 69.27% | 63% | 83.69% |
+
+Compared with the single 224 px model: **+2.7 points field accuracy, +2.6 points field macro recall,
++2.0 points field precision**, +0.2 points lab accuracy. With only 225 field test images the 95% interval
+is still about +/-6 points, so the gain is suggestive rather than proven; but validation and test agree
+in direction, which is why it was kept.
+
+- **The 80% threshold is now more conservative**: 63% of field photos pass it, and those are right 84% of
+  the time; the other 37% get the "not sure, retake" banner.
+- Weakest field classes are unchanged in kind: Tomato mosaic virus 2/10, Corn gray leaf spot 1/3, Tomato
+  bacterial spot 3/8, Potato early blight 3/7.
+- **Cost:** two networks instead of one: about 190 ms per photo on the CPU instead of 70 ms, and 98 MB of
+  weights instead of 49 MB. `ENSEMBLE=0` (or deleting `leafscan_hybrid_288.pt`) goes back to the single
+  224 px model.
 
 ### What would improve field accuracy further
 
-More field photos (the biggest factor), higher input resolution (288-384 px), longer training, or an
-ensemble of two different hybrids (costs CPU time).
+More field photos (the biggest factor by far: PlantDoc has only ~2,000), a third ensemble member of a
+different architecture (e.g. a ConvNeXt or EfficientNet, so the mistakes are less correlated), or
+distilling the ensemble into one network to get its accuracy at single-model speed.
 
 ## Latency (CPU)
 
@@ -213,70 +275,75 @@ ensemble of two different hybrids (costs CPU time).
 
 | Model | Median | Notes |
 |---|---|---|
-| Hybrid CAFormer-S18 + mirror TTA (default) | **68.8 ms** (min 65.9, max 75.3) | 2 views per photo |
+| Hybrid ensemble 224 + 288 px + mirror TTA (default) | **190 ms** (min 184, max 210) | 2 networks x 2 views |
+| Single 224 px hybrid + mirror TTA (`ENSEMBLE=0`) | 70 ms (min 66, max 83) | 2 views per photo |
 | Original CNN (random weights, same compute) | 23.1 ms | demo mode only |
 
-Set `TTA=0` to roughly halve the hybrid's time. "< 1 s" on the home page remains conservative.
+Set `TTA=0` to roughly halve either. "< 1 s" on the home page remains true with margin. (A first
+ensemble measurement of 416 ms was taken while a GPU job's data loaders were still busy; the repeated
+runs above are the reliable figures.)
 
 ## `test_images/` sanity check
 
-`scripts/benchmark.py` with the hybrid: **41/43** filenames matched. **This is not a fair accuracy
-measure**: file hashes show 24 of the 43 images are in our training set, 6 in validation, 9 in the lab
-test set, and only 4 are not from PlantVillage. Both misses are web images outside PlantVillage:
-`tomato-mold.jpg` was predicted Tomato late blight at 53.5% (so the "not sure" banner shows), and
-`tomato_yellow_leaf_curl_virus2.jpg` was predicted Soybean healthy at 92.3%, a confident mistake.
+`scripts/benchmark.py` with the shipped ensemble: **41/43** filenames matched (same as the single model).
+**This is not a fair accuracy measure**: file hashes show 24 of the 43 images are in our training set, 6 in
+validation, 9 in the lab test set, and only 4 are not from PlantVillage. Both misses are web images outside
+PlantVillage: `tomato-mold.jpg` is predicted Tomato late blight at 36.9% (the single model said 53.5%; either
+way the "not sure" banner shows), and `tomato_yellow_leaf_curl_virus2.jpg` is predicted Soybean healthy at
+92.3%, a confident mistake.
 
 | File | Predicted class | Confidence | Match |
 |---|---|---|---|
-| apple_black_rot.JPG | Apple___Black_rot | 89.9% | yes |
+| apple_black_rot.JPG | Apple___Black_rot | 90.0% | yes |
 | Apple_ceder_apple_rust.JPG | Apple___Cedar_apple_rust | 90.2% | yes |
-| apple_healthy.JPG | Apple___healthy | 89.2% | yes |
+| apple_healthy.JPG | Apple___healthy | 89.6% | yes |
 | Apple_scab.JPG | Apple___Apple_scab | 90.2% | yes |
-| background_without_leaves.jpg | Background_without_leaves | 89.7% | yes |
+| background_without_leaves.jpg | Background_without_leaves | 89.9% | yes |
 | blueberry_healthy.JPG | Blueberry___healthy | 90.5% | yes |
 | cherry_healthy.JPG | Cherry___healthy | 90.3% | yes |
-| cherry_powdery_mildew.JPG | Cherry___Powdery_mildew | 89.9% | yes |
-| corn_cercospora_leaf.JPG | Corn___Cercospora_leaf_spot Gray_leaf_spot | 88.4% | yes |
-| corn_common_rust.JPG | Corn___Common_rust | 89.9% | yes |
+| cherry_powdery_mildew.JPG | Cherry___Powdery_mildew | 90.2% | yes |
+| corn_cercospora_leaf.JPG | Corn___Cercospora_leaf_spot Gray_leaf_spot | 89.2% | yes |
+| corn_common_rust.JPG | Corn___Common_rust | 90.1% | yes |
 | corn_healthy.jpg | Corn___healthy | 90.2% | yes |
-| corn_northen_leaf_blight.JPG | Corn___Northern_Leaf_Blight | 89.5% | yes |
-| grape_black_rot.JPG | Grape___Black_rot | 90.1% | yes |
+| corn_northen_leaf_blight.JPG | Corn___Northern_Leaf_Blight | 89.9% | yes |
+| grape_black_rot.JPG | Grape___Black_rot | 90.2% | yes |
 | Grape_esca.JPG | Grape___Esca_(Black_Measles) | 90.3% | yes |
-| grape_healthy.JPG | Grape___healthy | 90.6% | yes |
-| grape_leaf_blight.JPG | Grape___Leaf_blight_(Isariopsis_Leaf_Spot) | 90.1% | yes |
+| grape_healthy.JPG | Grape___healthy | 90.7% | yes |
+| grape_leaf_blight.JPG | Grape___Leaf_blight_(Isariopsis_Leaf_Spot) | 90.2% | yes |
 | orange_haunglongbing.JPG | Orange___Haunglongbing_(Citrus_greening) | 90.3% | yes |
-| peach_bacterial_spot.JPG | Peach___Bacterial_spot | 90.4% | yes |
-| peach_healthy.JPG | Peach___healthy | 89.9% | yes |
-| pepper_bacterial_spot.JPG | Pepper,_bell___Bacterial_spot | 89.9% | yes |
+| peach_bacterial_spot.JPG | Peach___Bacterial_spot | 90.3% | yes |
+| peach_healthy.JPG | Peach___healthy | 90.1% | yes |
+| pepper_bacterial_spot.JPG | Pepper,_bell___Bacterial_spot | 90.1% | yes |
 | pepper_bell_healthy.JPG | Pepper,_bell___healthy | 90.3% | yes |
-| potato_early_blight.JPG | Potato___Early_blight | 90.7% | yes |
-| potato_healthy.JPG | Potato___healthy | 89.1% | yes |
-| potato_late_blight.JPG | Potato___Late_blight | 90.2% | yes |
+| potato_early_blight.JPG | Potato___Early_blight | 90.5% | yes |
+| potato_healthy.JPG | Potato___healthy | 89.6% | yes |
+| potato_late_blight.JPG | Potato___Late_blight | 90.3% | yes |
 | raspberry_healthy.JPG | Raspberry___healthy | 90.3% | yes |
-| soyaben healthy.JPG | Soybean___healthy | 90.4% | yes |
-| squash_powdery_mildew.JPG | Squash___Powdery_mildew | 90.1% | yes |
-| starwberry_healthy.JPG | Strawberry___healthy | 90.2% | yes |
+| soyaben healthy.JPG | Soybean___healthy | 90.3% | yes |
+| squash_powdery_mildew.JPG | Squash___Powdery_mildew | 90.3% | yes |
+| starwberry_healthy.JPG | Strawberry___healthy | 90.4% | yes |
 | starwberry_leaf_scorch.JPG | Strawberry___Leaf_scorch | 90.1% | yes |
-| tomato-bacterial-spot2.jpg | Tomato___Bacterial_spot | 88.7% | yes |
-| tomato-leaf-curl-virus3.jpg | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 89.9% | yes |
-| tomato-mold.jpg | Tomato___Late_blight | 53.5% | no |
+| tomato-bacterial-spot2.jpg | Tomato___Bacterial_spot | 89.3% | yes |
+| tomato-leaf-curl-virus3.jpg | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 90.1% | yes |
+| tomato-mold.jpg | Tomato___Late_blight | 36.9% | no |
 | tomato_bacterial_spot.JPG | Tomato___Bacterial_spot | 90.4% | yes |
 | tomato_early_blight.JPG | Tomato___Early_blight | 90.2% | yes |
 | tomato_healthy.JPG | Tomato___healthy | 90.3% | yes |
-| tomato_late_blight.JPG | Tomato___Late_blight | 90.4% | yes |
-| tomato_leaf_mold.JPG | Tomato___Leaf_Mold | 90.2% | yes |
+| tomato_late_blight.JPG | Tomato___Late_blight | 90.2% | yes |
+| tomato_leaf_mold.JPG | Tomato___Leaf_Mold | 90.4% | yes |
 | tomato_mosaic_virus.JPG | Tomato___Tomato_mosaic_virus | 90.3% | yes |
-| tomato_septoria_leaf_spot.JPG | Tomato___Septoria_leaf_spot | 89.7% | yes |
-| tomato_spider_mites_two_spotted_spider_mites.JPG | Tomato___Spider_mites Two-spotted_spider_mite | 90.6% | yes |
-| tomato_target_spot.JPG | Tomato___Target_Spot | 88.5% | yes |
+| tomato_septoria_leaf_spot.JPG | Tomato___Septoria_leaf_spot | 89.9% | yes |
+| tomato_spider_mites_two_spotted_spider_mites.JPG | Tomato___Spider_mites Two-spotted_spider_mite | 90.5% | yes |
+| tomato_target_spot.JPG | Tomato___Target_Spot | 89.4% | yes |
 | tomato_yellow_leaf_curl_virus.JPG | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 90.3% | yes |
 | tomato_yellow_leaf_curl_virus2.jpg | Soybean___healthy | 92.3% | no |
 
 ## Quality checks performed
 
-- **pytest**: 36 passed with the hybrid loaded (in demo mode the 5 "expected class in the HTML"
-  assertions skip themselves). Also covers model selection (`MODEL_KIND=auto` falls back to the CNN),
-  the hybrid's top-3 output and its ImageNet normalisation. Covers every page, 301/307 redirects, 5 real
+- **pytest**: 37 passed with the ensemble loaded (in demo mode the 5 "expected class in the HTML"
+  assertions skip themselves). Also covers model selection (`MODEL_KIND=auto` falls back to the CNN; the
+  ensemble is used only when the 288 px file exists and `ENSEMBLE` is on), the ensemble's top-3 output,
+  and the hybrid's ImageNet normalisation at 224 and 288 px. Covers every page, 301/307 redirects, 5 real
   uploads, RGBA/greyscale PNGs, missing/empty files, `.txt` renamed `.jpg` (400), wrong extension,
   path-traversal filename, 9 MB upload (413), API schema and JSON errors (400/413/405), security headers,
   no third-party assets, catalog flags.

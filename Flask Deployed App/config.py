@@ -33,7 +33,10 @@ class Config:
     # "hybrid" = CAFormer-S18 (CNN + Transformer, trained by training/train_hybrid.py),
     # "cnn" = the original 39-class CNN, "auto" = hybrid if its weights exist, else cnn.
     MODEL_KIND = os.environ.get("MODEL_KIND", "auto").lower()
-    HYBRID_MODEL_PATH = os.environ.get("HYBRID_MODEL_PATH", str(BASE_DIR / "leafscan_hybrid.pt"))
+    HYBRID_MODEL_PATH = os.environ.get("HYBRID_MODEL_PATH", str(BASE_DIR / "leafscan_hybrid.pt"))  # 224 px
+    # Second hybrid trained at 288 px; if its file exists and ENSEMBLE is on, both are averaged.
+    HYBRID_288_MODEL_PATH = os.environ.get("HYBRID_288_MODEL_PATH", str(BASE_DIR / "leafscan_hybrid_288.pt"))
+    ENSEMBLE = _env_bool("ENSEMBLE", default=True)
     # Test-time augmentation: also look at the mirror image and average (hybrid only; ~2x CPU time).
     TTA = _env_bool("TTA", default=True)
     MODEL_PATH = os.environ.get("MODEL_PATH", _default_model_path())

@@ -62,12 +62,18 @@ def preview_data_url(image: Image.Image, max_side: int) -> str:
 
 
 def load_predictor(config) -> Predictor:
-    """MODEL_KIND "auto" uses the hybrid when its weights file exists, otherwise the original CNN."""
+    """MODEL_KIND "auto" uses the hybrid when its weights file exists, otherwise the original CNN.
+    The hybrid becomes a 224 px + 288 px ensemble when the 288 px weights exist and ENSEMBLE is on."""
     kind = config["MODEL_KIND"]
     if kind == "auto":
         kind = "hybrid" if Path(config["HYBRID_MODEL_PATH"]).is_file() else "cnn"
-    path = config["HYBRID_MODEL_PATH"] if kind == "hybrid" else config["MODEL_PATH"]
-    return Predictor(path, kind=kind, require_weights=config["REQUIRE_MODEL"], tta=config["TTA"])
+    if kind == "hybrid":
+        members = [(config["HYBRID_MODEL_PATH"], 224)]
+        if config["ENSEMBLE"] and Path(config["HYBRID_288_MODEL_PATH"]).is_file():
+            members.append((config["HYBRID_288_MODEL_PATH"], 288))
+    else:
+        members = [(config["MODEL_PATH"], 224)]
+    return Predictor(members, kind=kind, require_weights=config["REQUIRE_MODEL"], tta=config["TTA"])
 
 
 ERROR_TEXT = {
@@ -139,6 +145,7 @@ def create_app(config_class=Config) -> Flask:
             "demo_mode": not predictor.model_loaded,
             "model_name": predictor.name,
             "model_kind": predictor.kind,
+            "model_sizes": predictor.sizes,
             "stats": stats,
         }
 

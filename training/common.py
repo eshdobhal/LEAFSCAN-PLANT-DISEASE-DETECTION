@@ -1,5 +1,6 @@
 """Shared pieces for training and evaluating the LeafScan hybrid model."""
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -19,15 +20,21 @@ CLASSES = [idx_to_classes[i] for i in range(len(idx_to_classes))]
 ARCH = "caformer_s18"                              # hybrid: conv stages + self-attention stages
 PRETRAINED = "caformer_s18.sail_in22k_ft_in1k"     # ImageNet-22k pre-training, fine-tuned on 1k
 IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-SIZE = 224
+SIZE = int(os.environ.get("TRAIN_SIZE", "224"))  # input side in pixels (224 or 288)
 
-# Inference transform: identical in evaluate.py and in the Flask app (model.py).
-EVAL_TF = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(SIZE),
-    transforms.ToTensor(),
-    transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
-])
+
+def eval_transform(size: int):
+    """Inference transform: identical in evaluate.py and in the Flask app (model.py).
+    Short side -> size * 256/224 (256 for 224, 329 for 288), centre crop size x size."""
+    return transforms.Compose([
+        transforms.Resize(round(size * 256 / 224)),
+        transforms.CenterCrop(size),
+        transforms.ToTensor(),
+        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+    ])
+
+
+EVAL_TF = eval_transform(SIZE)
 
 # Training transform: heavy augmentation so lab photos look more like field photos
 # (different framing, lighting, blur, orientation, partial occlusion).

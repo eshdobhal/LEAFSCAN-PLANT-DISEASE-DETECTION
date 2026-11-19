@@ -50,6 +50,7 @@ def main():
     ap.add_argument("--field-share", type=float, default=0.3)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--name", default="caformer_s18")
+    ap.add_argument("--no-copy", action="store_true", help="don't copy the best weights into the app")
     args = ap.parse_args()
 
     torch.manual_seed(0)
@@ -105,9 +106,11 @@ def main():
             torch.save(state, out_dir / "best.pt")
         (out_dir / "history.json").write_text(json.dumps(history, indent=1))
 
-    target = ROOT / "Flask Deployed App" / "leafscan_hybrid.pt"
-    target.write_bytes((out_dir / "best.pt").read_bytes())
-    print(f"best validation score {best:.4f}; weights copied to {target}")
+    print(f"best validation score {best:.4f}")
+    if not args.no_copy:
+        target = ROOT / "Flask Deployed App" / "leafscan_hybrid.pt"
+        target.write_bytes((out_dir / "best.pt").read_bytes())
+        print(f"weights copied to {target}")
 
 
 if __name__ == "__main__":

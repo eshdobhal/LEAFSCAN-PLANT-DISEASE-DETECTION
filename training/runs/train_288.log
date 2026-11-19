@@ -1,0 +1,10 @@
+train 42029 | lab val 4473 | field val 351
+{"epoch": 1, "loss": 1.2856, "lab_acc": 0.958, "lab_recall": 0.9455, "field_acc": 0.6809, "field_recall": 0.6568, "score": 0.8011, "minutes": 15.8387}
+{"epoch": 2, "loss": 1.0517, "lab_acc": 0.9575, "lab_recall": 0.9561, "field_acc": 0.6524, "field_recall": 0.6358, "score": 0.796, "minutes": 14.441}
+{"epoch": 3, "loss": 0.9496, "lab_acc": 0.9846, "lab_recall": 0.9806, "field_acc": 0.7236, "field_recall": 0.6924, "score": 0.8365, "minutes": 14.4324}
+{"epoch": 4, "loss": 0.8673, "lab_acc": 0.9884, "lab_recall": 0.9881, "field_acc": 0.7009, "field_recall": 0.6597, "score": 0.8239, "minutes": 14.4615}
+{"epoch": 5, "loss": 0.792, "lab_acc": 0.9908, "lab_recall": 0.9914, "field_acc": 0.7493, "field_recall": 0.712, "score": 0.8517, "minutes": 14.439}
+{"epoch": 6, "loss": 0.7429, "lab_acc": 0.9955, "lab_recall": 0.9944, "field_acc": 0.7607, "field_recall": 0.723, "score": 0.8587, "minutes": 14.4374}
+{"epoch": 7, "loss": 0.7108, "lab_acc": 0.9975, "lab_recall": 0.9953, "field_acc": 0.7806, "field_recall": 0.7459, "score": 0.8706, "minutes": 14.4377}
+{"epoch": 8, "loss": 0.702, "lab_acc": 0.9973, "lab_recall": 0.9952, "field_acc": 0.7778, "field_recall": 0.7472, "score": 0.8712, "minutes": 14.4237}
+best validation score 0.8712

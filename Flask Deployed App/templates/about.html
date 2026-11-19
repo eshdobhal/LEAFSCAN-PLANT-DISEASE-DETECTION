@@ -22,7 +22,13 @@
     <li>It started from weights pre-trained on ImageNet-22k (14 million everyday photos), then was fine-tuned on
       <strong>PlantVillage</strong> lab photos plus <strong>PlantDoc</strong> field photos taken in real gardens and farms,
       with heavy augmentation (cropping, lighting, blur, occlusion) so it copes better outdoors.</li>
+    {% if model_sizes | length > 1 %}
+    <li>Two copies were trained, one on {{ model_sizes | join(" px and one on ") }} px images. Both look at your
+      photo and its mirror image, and the four answers are averaged: this was the most accurate option on our
+      field-photo validation set.</li>
+    {% else %}
     <li>It looks at your photo and its mirror image and averages the two answers.</li>
+    {% endif %}
   {% else %}
   <p>The diagnosis comes from a <strong>convolutional neural network</strong> (CNN): a type of model that learns
     visual patterns, such as spots, rings and discoloured veins, directly from example photos.</p>
@@ -31,7 +37,7 @@
   {% endif %}
     <li>It chooses between <strong>{{ stats.classes }} classes</strong>: {{ stats.diseases }} diseases,
       {{ stats.conditions - stats.diseases }} "healthy" classes, and one "no leaf in the photo" class.</li>
-    <li>Your photo is resized and centre-cropped to 224 × 224 pixels, exactly as in training, then the network
+    <li>Your photo is resized and centre-cropped to {% for s in model_sizes %}{{ s }} × {{ s }}{% if not loop.last %} and {% endif %}{% endfor %} pixels, exactly as in training, then the network
       gives a probability for every class. The highest is the diagnosis.</li>
     <li>If the top probability is below {{ "%.0f" | format(threshold * 100) }}%, we tell you the model isn't sure.</li>
     <li>It runs on an ordinary server CPU in well under a second. Photos are processed in memory and never stored.</li>
