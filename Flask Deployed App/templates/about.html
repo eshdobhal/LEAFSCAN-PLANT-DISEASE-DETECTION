@@ -43,6 +43,17 @@
     <li>It runs on an ordinary server CPU in well under a second. Photos are processed in memory and never stored.</li>
   </ul>
 
+  {% if model_kind == "hybrid" and model_sizes | length > 1 %}
+  <h2>How accurate is it?</h2>
+  <p>Measured once, on photos the model never saw while it was being trained:</p>
+  <ul>
+    <li><strong>Lab photos</strong> (one leaf on a plain background, 10,937 photos): <strong>99.6%</strong> correct.</li>
+    <li><strong>Real field photos</strong> (taken in gardens and farms, 225 photos): <strong>71%</strong> correct.
+      When the model is at least {{ "%.0f" | format(threshold * 100) }}% sure, it is right 84% of the time. That is
+      why it tells you when it isn't sure.</li>
+  </ul>
+  {% endif %}
+
   <h2>Limitations</h2>
   <ul>
     <li>It can only recognise the conditions listed above. A disease it has never seen will be reported as the closest one it knows.</li>
@@ -58,11 +69,11 @@
       plant clinic, and always follow product label instructions.</p>
   </div>
 
-  <h2>Credit</h2>
-  <p>Model and dataset pipeline based on the open-source
-    <a href="{{ original_url }}" rel="noopener noreferrer">Plant-Disease-Detection</a> project by
-    Manthan Bhikadiya &amp; Krishna Baldaniya. The web app was rebuilt as {{ app_name }} with a new interface,
-    validation and tests. Fonts: Fraunces and Inter (SIL Open Font License).</p>
+  <h2>Author</h2>
+  <p>{{ app_name }} was designed and built by <strong>{{ author }}</strong>: the web app, the training and
+    evaluation of the hybrid model, and this site.</p>
+  <p class="muted">The model was trained on the public PlantVillage and PlantDoc datasets and is built with
+    PyTorch, timm and Flask. Fonts: Fraunces and Inter (SIL Open Font License).</p>
   <p><a class="btn btn--primary" href="{{ url_for('diagnose') }}">Diagnose a leaf{{ icon("arrow-right") }}</a></p>
 </div>
 {% endblock %}

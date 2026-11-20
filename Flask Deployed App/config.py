@@ -26,8 +26,10 @@ class Config:
     # --- Branding (rename the app here) ---
     APP_NAME = "LeafScan"
     APP_TAGLINE = "Leaf disease diagnosis in seconds"
-    REPO_URL = os.environ.get("REPO_URL", "https://github.com/manthan89-py/Plant-Disease-Detection")
-    ORIGINAL_PROJECT_URL = "https://github.com/manthan89-py/Plant-Disease-Detection"
+    AUTHOR = "Esh Dobhal"
+    COPYRIGHT_YEAR = "2026"
+    # Link to your source repository in the footer; leave unset to hide the link.
+    REPO_URL = os.environ.get("REPO_URL", "")
 
     # --- Model ---
     # "hybrid" = CAFormer-S18 (CNN + Transformer, trained by training/train_hybrid.py),
@@ -55,8 +57,22 @@ class Config:
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}  # what Pillow must detect inside the file
     PREVIEW_MAX_SIDE = 512  # px, size of the photo echoed back on the result page
+    # "Try a sample" photos on the Diagnose page: file in static/img/samples/ -> button label.
+    # All four were never used in training (PlantVillage held-out test set, and a web photo).
+    SAMPLES = {
+        "potato-early-blight": "Potato leaf",
+        "peach-bacterial-spot": "Peach leaf",
+        "tomato-healthy": "Tomato leaf",
+        "tomato-leaf-curl": "Tomato plant",
+    }
+
+    # --- Abuse protection ---
+    # Each diagnosis costs ~0.2 s of CPU, so one client may request at most this many per minute (0 = off).
+    RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "30"))
+    # Behind a hosting proxy (Render, Railway, nginx) set TRUST_PROXY=1 so the real client IP and https are used.
+    TRUST_PROXY = _env_bool("TRUST_PROXY")
 
     # --- Web ---
     DEBUG = _env_bool("FLASK_DEBUG")
-    STATIC_VERSION = "1"  # bump to bust browser caches after changing CSS/JS
+    STATIC_VERSION = "2"  # bump to bust browser caches after changing CSS/JS
     SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # static files cached for 1 year

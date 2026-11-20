@@ -329,6 +329,15 @@ p, li { max-width: 65ch; }
   content: ""; flex: none; width: 1.25rem; height: 1.25rem; margin-top: 0.15em; border-radius: 50%;
   background: var(--ok-tint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232E7D4F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 0.8rem no-repeat;
 }
+.samples { display: grid; gap: var(--s-3); margin-top: var(--s-7); }
+.samples__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--s-3); }
+.sample {
+  display: grid; gap: var(--s-2); padding: var(--s-2); text-align: center; font-size: 0.9375rem; font-weight: 600;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink);
+  cursor: pointer;
+}
+.sample img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: calc(var(--radius) - 4px); }
+.sample:hover { border-color: var(--brand); }
 .tips h2 { display: flex; align-items: center; gap: var(--s-2); }
 .tips h2 .icon { color: var(--warn-line); }
 
@@ -415,6 +424,8 @@ html:not(.js) .js-only { display: none !important; }
   .btn, .chip-btn, .segmented button, .site-nav a, .icon-btn, .theme-toggle, .menu-toggle, .dropzone, .input {
     transition: background-color 180ms var(--ease), border-color 180ms var(--ease), color 180ms var(--ease), box-shadow 180ms var(--ease);
   }
+  .sample { transition: border-color 180ms var(--ease), transform 180ms var(--ease); }
+  .sample:hover { transform: translateY(-2px); }
   .btn:active { transform: translateY(1px); }
   .spinner { animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }

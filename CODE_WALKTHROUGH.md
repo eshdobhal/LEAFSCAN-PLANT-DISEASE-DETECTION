@@ -1,27 +1,29 @@
 # LeafScan — code walkthrough
 
 A plain-English tour of every file, in the order a request flows through them. Line numbers refer to
-the files as committed on the `redesign` branch. All app files live in `Flask Deployed App/`.
+the files as committed on the `redesign` branch. Author: Esh Dobhal. All app files live in `Flask Deployed App/`.
 
 ## Quick answers for the examiner
 
 | If the examiner asks… | The answer is in |
 |---|---|
-| **How is the image preprocessed? Does it match training?** | `model.py` `make_transform` (line 29). Each model gets the transform it was trained with. Hybrid: `Resize(size × 256/224)` (short side → 256 px for the 224 px model, 329 px for the 288 px model; aspect kept) → `CenterCrop(size)` → `ToTensor()` (pixels → floats 0–1) → `Normalize` with ImageNet mean/std, identical to `eval_transform()` in `training/common.py`. Original CNN: `Resize(255)` → `CenterCrop(224)` → `ToTensor()`, as in its notebook (`Model/Plant Disease Detection Code.md` line 35). `.convert("RGB")` (line 111) handles PNG alpha / greyscale; `unsqueeze(0)` adds the batch dimension. EXIF rotation: `app.py` line 49. |
-| **How is the confidence computed?** | `model.py` `predict` (lines 108–128). For each of the two networks: the photo (and, with TTA, its mirror image, line 116) goes through the network, which outputs 39 raw scores (logits) per view; `torch.softmax` (line 119) turns each row into probabilities that sum to 1. Line 120 stacks all 4 rows (2 networks × 2 views) and averages them. `torch.topk(probs, 3)` (line 121) picks the 3 largest; the top one is the "confidence". The 80% warning is `low_confidence=result["confidence"] < threshold` in `app.py` line 171 (threshold from `config.py` line 47). Label smoothing during training (`training/train_hybrid.py`) keeps these probabilities from being over-confident. |
+| **How is the image preprocessed? Does it match training?** | `model.py` `make_transform` (line 29). Each model gets the transform it was trained with. Hybrid: `Resize(size × 256/224)` (short side → 256 px for the 224 px model, 329 px for the 288 px model; aspect kept) → `CenterCrop(size)` → `ToTensor()` (pixels → floats 0–1) → `Normalize` with ImageNet mean/std, identical to `eval_transform()` in `training/common.py`. Original CNN: `Resize(255)` → `CenterCrop(224)` → `ToTensor()`, as in its notebook (`Model/Plant Disease Detection Code.md` line 35). `.convert("RGB")` (line 111) handles PNG alpha / greyscale; `unsqueeze(0)` adds the batch dimension. EXIF rotation: `app.py` line 53. |
+| **How is the confidence computed?** | `model.py` `predict` (lines 108–128). For each of the two networks: the photo (and, with TTA, its mirror image, line 116) goes through the network, which outputs 39 raw scores (logits) per view; `torch.softmax` (line 119) turns each row into probabilities that sum to 1. Line 120 stacks all 4 rows (2 networks × 2 views) and averages them. `torch.topk(probs, 3)` (line 121) picks the 3 largest; the top one is the "confidence". The 80% warning is `low_confidence=result["confidence"] < threshold` in `app.py` line 167 (threshold from `config.py` line 49). Label smoothing during training (`training/train_hybrid.py`) keeps these probabilities from being over-confident. |
 | **What is the hybrid model and why that one?** | `model.py` line 51 (`build_network`) creates `caformer_s18` from timm. Stages 1–2 are convolutions (good at local texture: spots, rings, mould), stages 3–4 are self-attention (each patch looks at every other patch: whole-leaf patterns). It was pre-trained on ImageNet-22k, then fine-tuned on PlantVillage + PlantDoc field photos. Why: lab accuracy is saturated in the literature; field photos are the hard part, and pre-trained hybrids + field data + augmentation help most there. Results and sources: `DECISIONS.md` "Hybrid model". |
-| **Why two models (an ensemble)?** | The same architecture was trained twice, at 224 px and at 288 px (`training/common.py` `TRAIN_SIZE`). They make different mistakes, so averaging their probabilities corrects some of each other's errors. Chosen on the validation sets (`training/compare_models.py`), then confirmed once on the test sets: field accuracy 68.4% → 71.1%, field macro recall 67.8% → 70.4%. Cost: ~190 ms instead of ~70 ms per photo on the CPU. `app.py` `load_predictor` (line 64) adds the 288 px model only if its file exists and `ENSEMBLE` is on (`config.py` lines 36–39). |
+| **Why two models (an ensemble)?** | The same architecture was trained twice, at 224 px and at 288 px (`training/common.py` `TRAIN_SIZE`). They make different mistakes, so averaging their probabilities corrects some of each other's errors. Chosen on the validation sets (`training/compare_models.py`), then confirmed once on the test sets: field accuracy 68.4% → 71.1%, field macro recall 67.8% → 70.4%. Cost: ~190 ms instead of ~70 ms per photo on the CPU. `app.py` `load_predictor` (line 68) adds the 288 px model only if its file exists and `ENSEMBLE` is on (`config.py` lines 38–41). |
 | **How do you know the test results aren't inflated?** | `training/prepare_data.py`. PlantVillage has several photos of each leaf, so it uses the dataset's official **leaf-grouped** split: no leaf appears in both train and test. PlantDoc test files identical to training files are removed (line with `md5`). Validation sets (for picking the epoch) are separate from the test sets, and the test sets are used once, by `training/evaluate.py`. |
 | **Why accuracy *and* recall?** | Recall per class = of all photos that really have disease X, how many the model calls X. Macro recall averages that over classes, so rare diseases count as much as common ones; a missed disease is the costly mistake for a farmer. `training/common.py` `metrics()`; the training loop keeps the epoch with the best mean of lab and field macro recall. |
-| **Why only one gunicorn worker?** | `Flask Deployed App/Procfile` line 1, explained in `DECISIONS.md` ("Production server"). Each worker is a separate process that would load its own copy of the model. One worker loads it once at startup (`app.py` line 96); `--threads 4` lets that one process serve 4 requests at once, sharing the model. PyTorch releases Python's GIL during the forward pass, so the threads really do overlap. |
-| **Why are uploads processed in memory?** | `app.py` lines 30–52 (`read_upload`). The original saved files to `static/uploads/` using the user's filename: a path-traversal hole (`../../app.py`), unlimited disk growth, and a privacy problem (anyone could fetch others' photos). Now `file.read()` gives bytes, `io.BytesIO` wraps them so Pillow can open them like a file, and nothing touches the disk. The photo shown on the result page is a small base64 data URL (`preview_data_url`, lines 55–61). |
+| **Why only one gunicorn worker?** | `Flask Deployed App/Procfile` line 1, explained in `DECISIONS.md` ("Production server"). Each worker is a separate process that would load its own copy of the model. One worker loads it once at startup (`app.py` line 132); `--threads 4` lets that one process serve 4 requests at once, sharing the model. PyTorch releases Python's GIL during the forward pass, so the threads really do overlap. |
+| **Why are uploads processed in memory?** | `app.py` lines 34–56 (`read_upload`). The original saved files to `static/uploads/` using the user's filename: a path-traversal hole (`../../app.py`), unlimited disk growth, and a privacy problem (anyone could fetch others' photos). Now `file.read()` gives bytes, `io.BytesIO` wraps them so Pillow can open them like a file, and nothing touches the disk. The photo shown on the result page is a small base64 data URL (`preview_data_url`, lines 59–65). |
 | **How does a camera capture reach the form?** | `static/js/diagnose.js`. `getUserMedia` (line 194) streams the back camera into a `<video>`. Capture draws the current frame onto a `<canvas>`. "Use photo" (line 230) calls `canvas.toBlob` → wraps it in a `File` → `handleFile()` (line 78), the same function used for picked/dropped/pasted files. That calls `setInputFile()` (line 28), which uses a `DataTransfer` object to put the file into the real `<input type="file" name="image">`. The normal form submit then uploads it as multipart data, exactly like a chosen file. `stopCamera()` (line 177) turns the camera off when the dialog closes. |
-| What stops a fake image (a `.txt` renamed `.jpg`)? | `app.py` lines 38–51: extension check, then Pillow `verify()` (line 45) fails on non-images → `UploadError` → 400 with a friendly message. Tested in `tests/test_app.py`. |
-| What happens with a 9 MB file? | `config.py` line 54 `MAX_CONTENT_LENGTH`. Flask refuses to read the body and raises 413; `app.py` lines 236–241 render the custom "Photo too large" page (or JSON for `/api/`). |
+| What stops a fake image (a `.txt` renamed `.jpg`)? | `app.py` lines 42–55: extension check, then Pillow `verify()` (line 49) fails on non-images → `UploadError` → 400 with a friendly message. Tested in `tests/test_app.py`. |
+| What happens with a 9 MB file? | `config.py` line 56 `MAX_CONTENT_LENGTH`. Flask refuses to read the body and raises 413; `app.py` lines 297–302 render the custom "Photo too large" page (or JSON for `/api/`). |
 | How do templates know if a class is healthy? | `catalog.py` lines 100–101: `is_healthy = key.endswith("healthy")`, `is_background = key == "Background_without_leaves"`. Templates read `c.is_healthy`; no hard-coded index lists. |
 | What does `model.eval()` / `inference_mode()` do? | `model.py` lines 97 and 117. `eval()` switches off Dropout and makes normalisation layers use their stored statistics. `inference_mode()` stops PyTorch recording operations for gradients, so inference is faster and uses less memory. |
 | What is `weights_only=True`? | `model.py` line 92. `.pt` files are Python pickles, which can run code when loaded. `weights_only` only allows tensors and plain containers. `map_location="cpu"` lets weights saved on a GPU load on a CPU server. Line 94 converts the hybrid's half-precision (fp16) weights back to fp32. |
-| What is the CSP nonce? | `app.py` lines 125–135. A random value per request; only `<script>` tags carrying it (our one inline theme script in `base.html`) may run inline. Injected scripts can't guess it. |
+| What is the CSP nonce? | `app.py` lines 183–193. A random value per request; only `<script>` tags carrying it (our one inline theme script in `base.html`) may run inline. Injected scripts can't guess it. |
+| How is the server protected from being flooded? | `app.py` `RateLimiter` (line 83) and the `rate_limit` hook (line 176). Only the three endpoints that run the model are limited: each client IP may make `RATE_LIMIT_PER_MINUTE` requests (30 by default, `config.py` line 71) in any 60 seconds; more get a 429 "Too many requests" page or JSON. It keeps a queue of recent request times per IP and drops times older than 60 s ("sliding window"). A `Lock` is needed because four threads serve requests at once. In memory is correct because there is one process. Behind a hosting proxy every request seems to come from the proxy, so `TRUST_PROXY=1` (line 127) makes Flask use the real client IP from `X-Forwarded-For`. |
+| How do the sample photos work, and are they safe? | `config.py` `SAMPLES` (line 62) names four photos in `static/img/samples/`, none used in training. The Diagnose page posts the chosen name to `/diagnose/sample` (`app.py` line 228). The name is only accepted if it is one of those keys (line 231), so it can never be turned into a path like `../../app.py`; anything else is a 404. |
 
 ---
 
@@ -30,14 +32,17 @@ the files as committed on the `redesign` branch. All app files live in `Flask De
 - `_env_bool` (line 8): reads environment variables like `FLASK_DEBUG=1` as true/false.
 - `_default_model_path` (line 16): the original repo used two different weight filenames; use whichever exists.
 - `class Config`: plain class attributes. Flask copies them into `app.config` (`from_object`).
-  - `APP_NAME` / `APP_TAGLINE` (line 27): rename the app here only.
-  - `MODEL_KIND`, `HYBRID_MODEL_PATH`, `HYBRID_288_MODEL_PATH`, `ENSEMBLE`, `TTA` (lines 35–41): which model
+  - `APP_NAME` / `APP_TAGLINE` (line 27), `AUTHOR` / `COPYRIGHT_YEAR` (lines 29–30): shown in the footer and
+    page metadata. `REPO_URL` (line 32): footer source link, hidden when unset.
+  - `MODEL_KIND`, `HYBRID_MODEL_PATH`, `HYBRID_288_MODEL_PATH`, `ENSEMBLE`, `TTA` (lines 37–43): which model
     to run, where the two hybrids' weights are, whether to average both, and whether to also score the mirror image.
-  - `MODEL_PATH`, `REQUIRE_MODEL`, `CONFIDENCE_THRESHOLD` (lines 42–47): overridable by env vars.
-  - `MAX_CONTENT_LENGTH` (line 54): Flask's built-in upload size limit, 8 MB.
-  - `ALLOWED_EXTENSIONS` / `ALLOWED_FORMATS` (line 55): what the filename may end with / what Pillow must detect inside.
-  - `DEBUG` (line 60): only on with `FLASK_DEBUG=1`; never in production.
-  - `STATIC_VERSION`, `SEND_FILE_MAX_AGE_DEFAULT` (lines 61–62): cache static files for a year; bump the version to force refresh.
+  - `MODEL_PATH`, `REQUIRE_MODEL`, `CONFIDENCE_THRESHOLD` (lines 44–49): overridable by env vars.
+  - `MAX_CONTENT_LENGTH` (line 56): Flask's built-in upload size limit, 8 MB.
+  - `ALLOWED_EXTENSIONS` / `ALLOWED_FORMATS` (line 57): what the filename may end with / what Pillow must detect inside.
+  - `SAMPLES` (line 62): the "Try a sample" photos and their button labels.
+  - `RATE_LIMIT_PER_MINUTE`, `TRUST_PROXY` (lines 71–73): flood protection; use the real client IP behind a proxy.
+  - `DEBUG` (line 76): only on with `FLASK_DEBUG=1`; never in production.
+  - `STATIC_VERSION`, `SEND_FILE_MAX_AGE_DEFAULT` (lines 77–78): cache static files for a year; bump the version to force refresh.
 
 ## `CNN.py` — the network (unchanged architecture)
 
@@ -76,25 +81,29 @@ the files as committed on the `redesign` branch. All app files live in `Flask De
 
 ## `app.py` — the web app
 
-- `MAX_IMAGE_PIXELS` (line 23): refuse images over 40 megapixels (protection against "decompression bombs").
-- `UploadError` (line 26): a user-fixable problem; its message is shown on the page.
-- `read_upload` (line 30): validation pipeline, all in memory (see quick answers).
-- `preview_data_url` (line 55): shrinks the photo to ≤512 px, JPEG-encodes it, base64-encodes it into a `data:` URL.
-- `load_predictor` (line 64): resolves `MODEL_KIND=auto` (hybrid if `leafscan_hybrid.pt` exists, else CNN),
+- `MAX_IMAGE_PIXELS` (line 27): refuse images over 40 megapixels (protection against "decompression bombs").
+- `UploadError` (line 30): a user-fixable problem; its message is shown on the page.
+- `read_upload` (line 34): validation pipeline, all in memory (see quick answers).
+- `preview_data_url` (line 59): shrinks the photo to ≤512 px, JPEG-encodes it, base64-encodes it into a `data:` URL.
+- `load_predictor` (line 68): resolves `MODEL_KIND=auto` (hybrid if `leafscan_hybrid.pt` exists, else CNN),
   adds the 288 px member when its file exists and `ENSEMBLE` is on, and builds the `Predictor`.
-- `ERROR_TEXT` (line 79): friendly titles/messages for 404, 405, 413, 500.
-- `create_app` (line 87):
-  - loads config, the catalog, crop summary and the model **once** (line 96); computes the home-page
-    numbers; builds the CSP string.
-  - `asset()` (line 112): `url_for('static', …, v=…)` for cache busting.
-  - `run_prediction()` (line 116): calls the model, looks up the `Condition`, logs label/confidence/latency.
-  - `make_nonce` / `security_headers` (lines 125–135): per-request nonce; CSP and other headers on every response.
-  - `template_globals` (line 137): variables every template can use (app name, `asset`, nonce, demo mode,
-    model name/kind/input sizes, stats).
+- `RateLimiter` (line 83): per-client sliding-window counter (see quick answers).
+- `ERROR_TEXT` (line 111): friendly titles/messages for 404, 405, 413, 429, 500.
+- `create_app` (line 120):
+  - wraps the app in `ProxyFix` when `TRUST_PROXY` is on (line 127); loads config, the catalog, crop summary
+    and the model **once** (line 132); computes the home-page numbers; builds the CSP string.
+  - `asset()` (line 149): `url_for('static', …, v=…)` for cache busting.
+  - `run_prediction()` (line 153): calls the model, looks up the `Condition`, logs label/confidence/latency.
+  - `render_result()` (line 160): runs the prediction and renders `result.html`; shared by uploads and samples.
+  - `rate_limit` (line 176): before each request, refuses model-running POSTs over the limit with 429.
+  - `make_nonce` / `security_headers` (lines 183–193): per-request nonce; CSP and other headers on every response.
+  - `template_globals` (line 196): variables every template can use (app name, author, `asset`, nonce,
+    demo mode, model name/kind/input sizes, stats).
   - Routes: `/` home; `/diagnose` GET shows the form, POST validates → predicts → renders `result.html`
-    (or re-renders the form with a 400 error); `/treatments`; `/about`; old-URL redirects; `/api/predict`
-    (same validation, JSON out); `/healthz`; `/favicon.ico`; `/robots.txt`.
-  - Error handlers (lines 236–249): JSON for `/api/…`, the styled `error.html` page otherwise. Unexpected
+    (or re-renders the form with a 400 error); `/diagnose/sample` (line 228) diagnoses a bundled sample;
+    `/treatments`; `/about`; old-URL redirects; `/api/predict` (same validation, JSON out); `/healthz`;
+    `/favicon.ico`; `/robots.txt`.
+  - Error handlers (lines 297–310): JSON for `/api/…`, the styled `error.html` page otherwise. Unexpected
     exceptions are logged with a traceback and shown as a 500 page.
 
 ## `wsgi.py` and `Procfile`
@@ -108,17 +117,19 @@ the files as committed on the `redesign` branch. All app files live in `Flask De
   saved theme before the page paints. Preloads both fonts; links CSS, favicons, manifest, OG tags.
   Each page sets `{% set title = "…" %}` at its top; Jinja makes that visible to the base layout.
 - `partials/header.html`: logo, Menu button (JS only), nav with `aria-current="page"`, theme button.
-- `partials/footer.html`: disclaimer and the credit line.
+- `partials/footer.html`: disclaimer, © year and author (from `config.py`), and a source link if `REPO_URL` is set.
 - `partials/macros.html`: `icon()` (SVG sprite `<use>`), `status_chip()`, `product_card()`.
 - `home.html`: hero, numbers strip, three steps, crop grid (all numbers from Python).
 - `diagnose.html`: the form. Works without JS: a visible file input and a submit button.
   `diagnose.js` hides the raw input, shows "Choose photo"/"Use camera", preview and errors.
-  The camera is a native `<dialog>`.
+  The camera is a native `<dialog>`. Below the form, "Try a sample" is a second plain form whose four
+  image buttons each submit `sample=<name>`.
 - `result.html`: photo + verdict card (status chip, crop, condition, confidence, low-confidence banner),
   top-3 `<progress>` bars, "About this condition"/"What to do" lists (or growing tips/benefits for healthy),
   reference photo, product card with third-party note. Background class hides the advice sections.
 - `treatments.html`: filters (JS only) and every product card with `data-crop`, `data-kind`, `data-search`.
-- `about.html`, `error.html`: static text; error page used for every HTTP error.
+- `about.html`: what the app does, how the model works, measured accuracy, limitations, author.
+- `error.html`: used for every HTTP error (404, 405, 413, 429, 500).
 
 ## Static files (`static/`)
 
@@ -141,8 +152,8 @@ the files as committed on the `redesign` branch. All app files live in `Flask De
 
 - `common.py`: the 39 classes in the app's order, the architecture name, the input size (`TRAIN_SIZE`
   environment variable, 224 or 288), `TRAIN_TF` (heavy augmentation: random crops, flips, TrivialAugment
-  colour/geometry changes, blur, random erasing) and `eval_transform(size)` (the same transform the app uses), `LeafDataset`, `metrics()` (accuracy, macro precision/recall/F1,
-  per-class recall) and `predict_probs()` (with optional mirror TTA).
+  colour/geometry changes, blur, random erasing) and `eval_transform(size)` (the same transform the app
+  uses), `LeafDataset`, `metrics()` (accuracy, macro precision/recall/F1, per-class recall) and `predict_probs()` (with optional mirror TTA).
 - `fetch_zip_subset.py`: downloads only the needed files out of a huge remote zip using HTTP Range
   requests, in 8 MB resumable pieces (the connection here kept dropping on 1–2 GB downloads).
 - `prepare_data.py`: maps PlantVillage and PlantDoc folder names to the 39 classes and writes
@@ -162,7 +173,12 @@ the files as committed on the `redesign` branch. All app files live in `Flask De
 - `tests/test_model.py`: `MODEL_KIND=auto` fallback, ensemble only when the 288 px file exists and
   `ENSEMBLE` is on, ensemble top-3 output, hybrid normalisation at 224 and 288 px.
 - `tests/test_app.py`: pages, redirects, uploads (real test images, PNG modes, empty, fake, too big,
-  path traversal), API schema and errors, headers, catalog flags. Accuracy assertions skip in demo mode.
+  path traversal), API schema and errors, headers, catalog flags, samples (each one diagnosed correctly,
+  unknown names → 404), author credit, rate limiting. Accuracy assertions skip in demo mode.
+- `tests/test_e2e.py` (run with `E2E=1`): a real Chromium browser clicks through the app: upload → result,
+  sample button, 4000 px PNG resized to 1024 px in the browser, non-image error, fake-camera capture,
+  treatment filters, theme persistence, phone menu, no-JavaScript upload, no sideways scrolling at
+  320/375/1440 px, skip link, no console/CSP errors, and the API.
 - `scripts/benchmark.py`: accuracy table on `test_images/` + median latency of 20 runs.
 - `scripts/check_html.py`: tag balance, duplicate ids, missing alt, inline styles.
 - `scripts/screenshots.py`: Playwright screenshots + horizontal-overflow check at 320/375/1440 px.

@@ -4,7 +4,7 @@
 {% block head %}<meta name="robots" content="noindex">{% endblock %}
 {% block content %}
 <div class="container section result">
-  <p class="eyebrow">Diagnosis</p>
+  <p class="eyebrow">Diagnosis{% if sample %} · sample photo ({{ sample | lower }}){% endif %}</p>
 
   <div class="verdict">
     <img class="verdict__photo" src="{{ photo }}" alt="Your leaf photo">

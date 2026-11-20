@@ -182,3 +182,66 @@ def test_catalog_flags_match_class_names():
     assert [c.index for c in CATALOG if c.is_background] == [4]
     assert all(isinstance(c.description, list) and c.description for c in CATALOG)
     assert "Huanglongbing (citrus greening)" == BY_KEY["Orange___Haunglongbing_(Citrus_greening)"].condition
+
+
+# --- Sample photos, author credit and rate limiting ---
+
+SAMPLE_EXPECTED = {
+    "potato-early-blight": "Potato___Early_blight",
+    "peach-bacterial-spot": "Peach___Bacterial_spot",
+    "tomato-healthy": "Tomato___healthy",
+    "tomato-leaf-curl": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+}
+
+
+def test_diagnose_page_offers_every_sample(client):
+    body = client.get("/diagnose").get_data(as_text=True)
+    for name in Config.SAMPLES:
+        assert f'value="{name}"' in body
+        assert client.get(f"/static/img/samples/{name}.jpg").status_code == 200
+
+
+@pytest.mark.parametrize("name", list(SAMPLE_EXPECTED))
+def test_sample_diagnosis(client, model_loaded, name, app):
+    response = client.post("/diagnose/sample", data={"sample": name})
+    assert response.status_code == 200
+    body = html.unescape(response.get_data(as_text=True))
+    assert "sample photo" in body
+    if model_loaded:
+        expected = next(c for c in load_catalog(Config.DISEASE_CSV, Config.SUPPLEMENT_CSV) if c.key == SAMPLE_EXPECTED[name])
+        assert expected.condition in body
+
+
+@pytest.mark.parametrize("name", ["", "unknown", "../../app", "../config"])
+def test_unknown_sample_is_404(client, name):
+    assert client.post("/diagnose/sample", data={"sample": name}).status_code == 404
+
+
+def test_author_credit_in_footer(client):
+    body = client.get("/").get_data(as_text=True)
+    assert "Esh Dobhal" in body and 'name="author" content="Esh Dobhal"' in body
+
+
+def test_rate_limit(app, client):
+    app.config["RATE_LIMIT_PER_MINUTE"] = 2
+    try:
+        assert client.post("/api/predict").status_code == 400  # counted, even though it has no file
+        assert client.post("/api/predict").status_code == 400
+        limited = client.post("/api/predict")
+        assert limited.status_code == 429 and limited.get_json()["error"] == "Too many requests"
+        page = client.post("/diagnose")
+        assert page.status_code == 429 and "Please wait" in page.get_data(as_text=True)
+        assert client.get("/diagnose").status_code == 200  # pages are never limited
+    finally:
+        app.config["RATE_LIMIT_PER_MINUTE"] = 0
+
+
+def test_rate_limiter_window_expires():
+    import time
+
+    from app import RateLimiter
+    limiter = RateLimiter(window_seconds=0.05)
+    assert limiter.allow("a", 1) and not limiter.allow("a", 1)
+    assert limiter.allow("b", 1)  # other clients are counted separately
+    time.sleep(0.06)
+    assert limiter.allow("a", 1)

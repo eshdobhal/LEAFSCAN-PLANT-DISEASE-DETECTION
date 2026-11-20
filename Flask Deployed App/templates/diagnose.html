@@ -37,6 +37,21 @@
         <span data-submit-label>Diagnose leaf</span>
       </button>
     </form>
+
+    {% if samples %}
+    <section class="samples" aria-labelledby="samples-title">
+      <h2 id="samples-title" class="h3">No photo handy? Try a sample</h2>
+      <form class="samples__grid" action="{{ url_for('diagnose_sample') }}" method="post">
+        {% for name, label in samples.items() %}
+        <button class="sample" type="submit" name="sample" value="{{ name }}">
+          <img src="{{ asset('img/samples/' ~ name ~ '.jpg') }}" alt="" width="112" height="112" loading="lazy">
+          <span>{{ label }}</span>
+        </button>
+        {% endfor %}
+      </form>
+      <p class="hint">None of these photos were used to train the model.</p>
+    </section>
+    {% endif %}
   </div>
 
   <aside class="card tips" aria-labelledby="tips-title">

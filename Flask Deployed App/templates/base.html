@@ -8,6 +8,7 @@
   {% set page_title = title | default("") %}
   <title>{% if page_title %}{{ page_title }} · {% endif %}{{ app_name }}</title>
   <meta name="description" content="{% block description %}{{ app_name }} identifies {{ stats.diseases }} leaf diseases across {{ stats.crops }} crops from a single photo and suggests what to do next.{% endblock %}">
+  <meta name="author" content="{{ author }}">
   <meta name="theme-color" content="#1F5135">
   {# Apply a saved theme before first paint, so dark-mode users never see a white flash. #}
   <script nonce="{{ csp_nonce }}">

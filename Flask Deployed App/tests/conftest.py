@@ -15,6 +15,7 @@ def app():
     """One app for the whole test run: loading the model takes a second or two."""
     application = create_app()
     application.config["TESTING"] = True
+    application.config["RATE_LIMIT_PER_MINUTE"] = 0  # many uploads in a row; test_rate_limit turns it on
     return application
 
 

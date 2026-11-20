@@ -1,5 +1,7 @@
 # LeafScan
 
+*By Esh Dobhal*
+
 **Leaf disease diagnosis in seconds.** Photograph a single leaf; LeafScan names the most likely of
 26 diseases across 14 crops, says how confident it is, and gives practical next steps.
 
@@ -25,6 +27,7 @@ Details, per-class numbers and caveats: [DECISIONS.md](DECISIONS.md#hybrid-model
 
 - **Mobile-first diagnosis**: choose a photo, drag and drop, paste from the clipboard, or use the
   live camera (back camera on phones). Photos are resized in the browser to 1024 px before upload.
+- **Try it instantly** with four sample photos on the Diagnose page (none were used in training).
 - **Honest results**: top-1 condition with its confidence, a top-3 bar chart, and a warning when the
   model is less than 80% sure.
 - **Care steps** for each condition (or growing tips for healthy plants) and one suggested product.
@@ -32,6 +35,8 @@ Details, per-class numbers and caveats: [DECISIONS.md](DECISIONS.md#hybrid-model
 - **Works without JavaScript** (plain form), keyboard-accessible, light/dark theme, print stylesheet.
 - **JSON API** at `/api/predict` and a health check at `/healthz`.
 - **Private by design**: uploads are processed in memory and never written to disk.
+- **Production-ready**: security headers with a strict CSP, upload validation, per-client rate limiting,
+  a health check, and 64 automated tests including real-browser tests.
 - No CDNs, no frameworks: Flask + Jinja, one CSS file, small vanilla JS files.
 
 ## Quick start (Windows PowerShell)
@@ -103,16 +108,19 @@ CODE_WALKTHROUGH.md file-by-file explanation
 | `REQUIRE_MODEL` | off | `1` = refuse to start without weights (use in production) |
 | `CONFIDENCE_THRESHOLD` | `0.80` | Below this, show the "not sure" warning |
 | `FLASK_DEBUG` | off | `1` = debugger and auto-reload (never in production) |
-| `REPO_URL` | original project | GitHub link in the footer |
+| `RATE_LIMIT_PER_MINUTE` | `30` | Diagnoses per client IP per minute (`0` = no limit) |
+| `TRUST_PROXY` | off | `1` behind a hosting proxy (Render, Railway, nginx): use the real client IP and https |
+| `REPO_URL` | unset | Link to your source repository in the footer (hidden when unset) |
 
-The app name, tagline, upload limit (8 MB) and static-file version live in `config.py`.
+The app name, tagline, author, upload limit (8 MB) and static-file version live in `config.py`.
 
 ## Testing
 
 ```powershell
 pip install -r "Flask Deployed App\requirements-dev.txt"
 python -m playwright install chromium        # only for screenshots
-cd "Flask Deployed App"; python -m pytest; cd ..
+cd "Flask Deployed App"; python -m pytest; cd ..   # 49 tests; browser tests skipped
+$env:E2E = "1"; cd "Flask Deployed App"; python -m pytest; cd ..; Remove-Item Env:E2E   # all 64, incl. Chromium
 python scripts\check_html.py                 # tag balance, duplicate ids, alt text, inline styles
 python scripts\benchmark.py                  # accuracy table + median latency on test_images/
 python scripts\screenshots.py                # writes screenshots/ and reports horizontal overflow
@@ -127,8 +135,11 @@ python scripts\screenshots.py                # writes screenshots/ and reports h
 gunicorn "app:create_app()" --workers 1 --threads 4 --timeout 60
 ```
 
-One worker means the model is loaded once (~200 MB RAM); four threads serve requests concurrently.
-Put the weights on the server (persistent disk or download at build time) and set `REQUIRE_MODEL=1`.
+One worker means the models are loaded once; four threads serve requests concurrently.
+The weights are in the repository, so nothing else needs uploading. Set `REQUIRE_MODEL=1` (refuse to start
+without them) and `TRUST_PROXY=1` (these hosts put a proxy in front of the app). Measured memory use with
+both models loaded is about 700 MB, so 512 MB free tiers are too small: pick an instance with at least
+1 GB (`ENSEMBLE=0` loads one model and needs less).
 
 **Windows server:** gunicorn doesn't run on Windows; use waitress (already in requirements):
 
@@ -187,20 +198,16 @@ py -3.13 -m venv .venv-train
 - About 71% accuracy on real field photos: always check the confidence; under 80% the app says it isn't
   sure (when it is at least 80% sure on a field photo, it is right about 84% of the time).
 - Only the 38 listed leaf conditions are known; anything else is mapped to the closest one.
-- Product suggestions and reference photos come from the original project's CSVs and are not verified;
+- Product suggestions and reference photos come from the CSV data files and are not verified;
   reference photos are hot-linked and are hidden automatically if their host blocks them.
 - An automated first opinion, not professional advice.
 
-## Credit and licence
+## Author
 
-Model and dataset pipeline based on the open-source
-[Plant-Disease-Detection](https://github.com/manthan89-py/Plant-Disease-Detection) project by
-Manthan Bhikadiya & Krishna Baldaniya. The original training notebook is in `Model/`.
-Fonts: Fraunces and Inter (SIL Open Font License 1.1). Icons adapted from Lucide (ISC).
-Crop and product illustrations were drawn for this project (`scripts/make_assets.py`).
-Check the original repository's licence terms before redistributing its CNN weights.
-Hybrid model: CAFormer-S18 architecture and ImageNet pre-trained weights from
-[timm](https://github.com/huggingface/pytorch-image-models) (Apache-2.0; Yu et al., "MetaFormer Baselines
-for Vision", 2022), fine-tuned on [PlantVillage](https://github.com/spMohanty/PlantVillage-Dataset)
-(Hughes & Salathé, 2015), [PlantDoc](https://github.com/pratikkayal/PlantDoc-Dataset) (Singh et al., 2020,
-CC BY 4.0) and the [Mendeley PlantVillage release](https://data.mendeley.com/datasets/tywbtsjrjv/1) (background class).
+**Esh Dobhal** designed and built LeafScan: the web app, the hybrid-model training and evaluation
+pipeline, the tests and the documentation.
+
+## Third-party material
+
+LeafScan uses public datasets and open-source libraries, each under its own licence. The full list, with
+the attributions those licences require, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
