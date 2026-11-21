@@ -167,6 +167,9 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
 - `evaluate.py`: runs the kept model (or, with several `--runs`, the averaged ensemble) once on the two
   test sets, with and without TTA, and prints the tables used in `DECISIONS.md`. Both scripts end with
   `if __name__ == "__main__":`, which Windows needs because DataLoader workers re-import the file.
+- `report_figures.py`: runs the shipped ensemble once on both test sets (cached in
+  `runs/ensemble/test_predictions.npz`) and draws the README charts in light and dark versions into
+  `docs/images/`: training curves, model comparison, per-class field recall and the confusion matrix.
 
 ## Tests and scripts
 
@@ -183,3 +186,5 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
 - `scripts/check_html.py`: tag balance, duplicate ids, missing alt, inline styles.
 - `scripts/screenshots.py`: Playwright screenshots + horizontal-overflow check at 320/375/1440 px.
 - `scripts/make_assets.py`: draws the SVG art and renders PNG icons and the OG image.
+- `.github/workflows/tests.yml`: GitHub Actions installs the app on Linux (CPU PyTorch) and runs the
+  49 app/model tests with the real weights and `REQUIRE_MODEL=1` on every push.

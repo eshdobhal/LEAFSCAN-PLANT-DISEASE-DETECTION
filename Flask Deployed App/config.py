@@ -74,5 +74,5 @@ class Config:
 
     # --- Web ---
     DEBUG = _env_bool("FLASK_DEBUG")
-    STATIC_VERSION = "2"  # bump to bust browser caches after changing CSS/JS
+    STATIC_VERSION = "3"  # bump to bust browser caches after changing CSS/JS
     SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # static files cached for 1 year

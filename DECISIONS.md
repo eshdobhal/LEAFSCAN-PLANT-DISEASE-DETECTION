@@ -284,7 +284,9 @@ distilling the ensemble into one network to get its accuracy at single-model spe
 | Single 224 px hybrid + mirror TTA (`ENSEMBLE=0`) | 70 ms (min 66, max 83) | 2 views per photo |
 | Original CNN (random weights, same compute) | 23.1 ms | demo mode only |
 
-Set `TTA=0` to roughly halve either. "< 1 s" on the home page remains true with margin. (A first
+Re-measured later on the same laptop and code: ensemble 359 ms, single 224 px model 139–147 ms, single
+288 px model 223 ms. The difference is the laptop's power profile (about 2× CPU speed), not the code, so
+the README quotes both ends of the range. Set `TTA=0` to roughly halve either. "< 1 s" on the home page remains true with margin. (A first
 ensemble measurement of 416 ms was taken while a GPU job's data loaders were still busy; the repeated
 runs above are the reliable figures.)
 

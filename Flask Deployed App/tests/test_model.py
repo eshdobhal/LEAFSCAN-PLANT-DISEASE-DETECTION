@@ -11,7 +11,8 @@ from model import Predictor, preprocess
 
 def test_auto_falls_back_to_cnn_without_hybrid_weights(tmp_path):
     config = {k: getattr(Config, k) for k in dir(Config) if k.isupper()}
-    config.update(MODEL_KIND="auto", HYBRID_MODEL_PATH=str(tmp_path / "missing.pt"))
+    # REQUIRE_MODEL off: this test builds the CNN without weights on purpose (CI sets REQUIRE_MODEL=1).
+    config.update(MODEL_KIND="auto", HYBRID_MODEL_PATH=str(tmp_path / "missing.pt"), REQUIRE_MODEL=False)
     assert load_predictor(config).kind == "cnn"
 
 

@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Flask Deployed App
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            Flask Deployed App/requirements.txt
+            Flask Deployed App/requirements-dev.txt
+
+      - name: Install dependencies (CPU-only PyTorch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest==8.4.2
+
+      - name: Run tests with the trained weights
+        env:
+          REQUIRE_MODEL: "1"  # fail loudly if the weights are missing instead of testing demo mode
+        run: python -m pytest -q

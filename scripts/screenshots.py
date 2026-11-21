@@ -83,6 +83,38 @@ def main():
                     page.screenshot(path=OUT / f"menu-open-{label}-{scheme}.png")
                 context.close()
 
+        # Extra outputs for the README (desktop, both themes): low-confidence result, healthy-leaf sample,
+        # a field-photo sample, and the camera dialog with Chromium's fake camera.
+        for scheme in ("light", "dark"):
+            context = browser.new_context(viewport={"width": 1280, "height": 900}, color_scheme=scheme,
+                                          reduced_motion="reduce")
+            page = context.new_page()
+            page.goto(base + "/diagnose")
+            page.set_input_files("#image", str(ROOT / "test_images" / "tomato-mold.jpg"))
+            page.wait_for_selector("[data-preview]:not([hidden])")
+            page.click("[data-submit]")
+            page.wait_for_url("**/diagnose")
+            page.screenshot(path=OUT / f"result-low-confidence-{scheme}.png")
+            for sample in ("tomato-healthy", "tomato-leaf-curl"):
+                page.goto(base + "/diagnose")
+                page.click(f".sample[value={sample}]")
+                page.wait_for_url("**/diagnose/sample")
+                page.screenshot(path=OUT / f"result-sample-{sample}-{scheme}.png")
+            context.close()
+
+        camera_browser = pw.chromium.launch(args=["--use-fake-ui-for-media-stream",
+                                                  "--use-fake-device-for-media-stream"])
+        # bypass_csp: Playwright's wait_for_function evaluates code, which our strict CSP (rightly) blocks.
+        context = camera_browser.new_context(viewport={"width": 1280, "height": 900}, permissions=["camera"],
+                                             reduced_motion="reduce", bypass_csp=True)
+        page = context.new_page()
+        page.goto(base + "/diagnose")
+        page.click("[data-camera-open]")
+        page.wait_for_function("document.querySelector('[data-camera-video]').readyState >= 2")
+        page.wait_for_timeout(500)
+        page.screenshot(path=OUT / "camera-dialog-light.png")
+        camera_browser.close()
+
         # 320 px: the narrowest phone we support must not scroll sideways.
         context = browser.new_context(viewport={"width": 320, "height": 700})
         page = context.new_page()

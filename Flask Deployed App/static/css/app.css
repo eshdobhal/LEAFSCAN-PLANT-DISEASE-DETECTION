@@ -342,6 +342,7 @@ p, li { max-width: 65ch; }
 .tips h2 .icon { color: var(--warn-line); }
 
 .camera {
+  margin: auto; /* the `* { margin: 0 }` reset removes the browser's centring of modal dialogs */
   width: min(100% - 2rem, 40rem); max-height: calc(100% - 2rem); padding: var(--s-5);
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink);
 }

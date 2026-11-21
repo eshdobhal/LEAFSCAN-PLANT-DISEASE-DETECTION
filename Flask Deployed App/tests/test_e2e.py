@@ -110,6 +110,8 @@ def test_camera_capture_fills_the_form(page):
     page.goto("/diagnose")
     page.click("[data-camera-open]")
     expect(page.locator("[data-camera]")).to_be_visible()
+    box = page.locator("[data-camera]").bounding_box()  # the dialog must be centred, not stuck top-left
+    assert abs((box["x"] + box["width"] / 2) - 1280 / 2) < 2 and box["y"] > 0
     page.click("[data-camera-capture]")
     page.click("[data-camera-use]")
     expect(page.locator("[data-camera]")).to_be_hidden()
