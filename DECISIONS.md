@@ -89,6 +89,8 @@ Every non-obvious choice made while rebuilding the original Plant-Disease-Detect
 | "Try a sample" on the Diagnose page: four bundled photos, posted by name to `/diagnose/sample` | Lets anyone (an examiner, a visitor without a sick plant) see a real diagnosis in one click. Three are from the PlantVillage held-out test set and one is a web photo outside all datasets, so none were seen in training; the lab ones are copied byte-for-byte so the results match the benchmark. Names are checked against `SAMPLES`, never used as paths. |
 | Rate limit: 30 model-running requests per client IP per minute, in memory, sliding window | Each diagnosis costs ~0.2 s of CPU; without a limit one script could keep the single worker busy. In-memory is correct with one process (a shared store like Redis would be needed with several). Pages and static files are never limited. `TRUST_PROXY=1` is required behind a hosting proxy, otherwise every user shares the proxy's IP and one limit. |
 | About page states measured accuracy (99.6% lab, 71% field, 84% when sure) | Users and examiners should see the honest field number, and why the "not sure" banner matters. Shown only when the ensemble is loaded, since the numbers belong to it. |
+| Hosting: Hugging Face Spaces (Docker, free CPU tier) | Both models need ~700 MB RAM; Render's free tier has 512 MB, and Railway/Fly/Cloud Run need a card. Spaces' free tier has 2 vCPU and 16 GB, HTTPS, and suits ML demos. The Space's Dockerfile clones a tagged GitHub release instead of holding a copy, so the Space runs exactly a version that passed CI and the 49 MB weights never go through Hugging Face's large-file storage. Trade-offs: the Space sleeps after 48 h idle, and 2 vCPUs are slower than the laptop. |
+| `FRAME_ANCESTORS` setting, default `'none'` | The Space page shows the app in an iframe on huggingface.co, which `frame-ancestors 'none'` blocks. Only the Space deployment allows that one origin; everywhere else framing stays forbidden. |
 | Browser tests (`tests/test_e2e.py`) are opt-in (`E2E=1`) | They need Chromium and take ~15 s; the default `pytest` stays fast and dependency-light. |
 | Visible credits name only the author; third-party attributions live in `THIRD_PARTY_NOTICES.md` | Requested by the author. Datasets (PlantDoc is CC BY 4.0), icons (ISC), fonts (OFL), timm (Apache-2.0) and the origin of `CNN.py`, the CSVs and `Model/` still need attribution under their licences, so they are listed there instead of in the footer. |
 | Removed: Bootstrap 5 beta + Bootstrap 4 JS + jQuery + ionicons + bttn.css, `/mobile-device`, "open on laptop only" notice, contact page with personal profiles, KrsikX links, emoji headings; later also the unused old templates (`index.html`, `market.html`, `submit.html`, `contact-us.html`) and the old UI screenshots in `demo_images/` | See the audit in the brief; all replaced by the above. |
@@ -347,7 +349,7 @@ way the "not sure" banner shows), and `tomato_yellow_leaf_curl_virus2.jpg` is pr
 
 ## Quality checks performed
 
-- **pytest**: 64 passed with `E2E=1` (49 app/model tests + 15 real-browser tests; without `E2E` the
+- **pytest**: 65 passed with `E2E=1` (50 app/model tests + 15 real-browser tests; without `E2E` the
   browser tests are skipped). Earlier: 37 passed with the ensemble loaded (in demo mode the 5 "expected class in the HTML"
   assertions skip themselves). Also covers model selection (`MODEL_KIND=auto` falls back to the CNN; the
   ensemble is used only when the 288 px file exists and `ENSEMBLE` is on), the ensemble's top-3 output,

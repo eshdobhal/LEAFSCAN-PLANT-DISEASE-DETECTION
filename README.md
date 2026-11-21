@@ -99,7 +99,7 @@ All numbers are measured once on held-out photos the models never saw during tra
 | **Top-3 possibilities** with probability bars, and a **low-confidence warning** | Strict **Content-Security-Policy** with per-request nonce, security headers |
 | **What to do** steps (or growing tips for healthy plants) and a suggested product | In-memory upload validation (type, Pillow decode, 8 MB, 40 MP limit) |
 | **Try a sample**: four one-click photos, none used in training | Per-client **rate limiting** (HTTP 429), proxy-aware |
-| **Treatments** page with instant search, crop filter and type toggle | **64 automated tests**, 15 of them in a real Chromium browser; CI on every push |
+| **Treatments** page with instant search, crop filter and type toggle | **65 automated tests**, 15 of them in a real Chromium browser; CI on every push |
 | Light/dark theme, keyboard accessible, print stylesheet, **works without JavaScript** | Reproducible training, evaluation and figure scripts |
 | Private: photos are **processed in memory and never stored** | No CDNs, no front-end frameworks: Flask + Jinja, one CSS file, small vanilla JS |
 
@@ -790,6 +790,7 @@ away. On macOS/Linux use `python3 -m venv .venv` and `source .venv/bin/activate`
 | `REQUIRE_MODEL` | off | `1` = refuse to start without weights (production) |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Diagnoses per client IP per minute (`0` = no limit) |
 | `TRUST_PROXY` | off | `1` behind a hosting proxy: real client IP and https |
+| `FRAME_ANCESTORS` | `'none'` | Sites allowed to show the app in a frame (`https://huggingface.co` on Spaces) |
 | `REPO_URL` | unset | Source-code link in the footer |
 | `FLASK_DEBUG` | off | `1` = debugger and auto-reload (never in production) |
 | `MODEL_PATH` | `Flask Deployed App/plant_disease_model_1_latest.pt` | Original CNN weights (optional fallback) |
@@ -802,8 +803,8 @@ App name, author, upload limit and sample photos live in `Flask Deployed App/con
 pip install -r "Flask Deployed App\requirements-dev.txt"
 python -m playwright install chromium
 cd "Flask Deployed App"
-python -m pytest                                   # 49 tests (browser tests skipped)
-$env:E2E = "1"; python -m pytest; Remove-Item Env:E2E   # all 64, including 15 in Chromium
+python -m pytest                                   # 50 tests (browser tests skipped)
+$env:E2E = "1"; python -m pytest; Remove-Item Env:E2E   # all 65, including 15 in Chromium
 cd ..
 python scripts\check_html.py      # tag balance, duplicate ids, alt text, no inline styles
 python scripts\benchmark.py       # accuracy on test_images/ + median latency
@@ -812,14 +813,21 @@ python scripts\screenshots.py     # regenerates screenshots/ and checks for side
 
 | Suite | Tests | Covers |
 |---|---:|---|
-| `tests/test_app.py` | 45 | Every page, redirects, 5 real uploads with expected diagnoses, PNG modes, empty/missing/fake/renamed files, path-traversal names, 9 MB upload (413), API schema and errors, security headers, no third-party assets, samples, author credit, rate limiting |
+| `tests/test_app.py` | 46 | Every page, redirects, 5 real uploads with expected diagnoses, PNG modes, empty/missing/fake/renamed files, path-traversal names, 9 MB upload (413), API schema and errors, security headers and configurable framing, no third-party assets, samples, author credit, rate limiting |
 | `tests/test_model.py` | 4 | Model selection (`auto`, ensemble on/off), top-3 output, preprocessing at 224 and 288 px |
 | `tests/test_e2e.py` | 15 | Real Chromium: upload → result, sample button, 4000 px PNG resized in the browser, camera capture (dialog centred, stream stopped), filters, theme persistence, phone menu, no-JavaScript upload, no overflow at 320/375/1440 px, skip link, no console/CSP errors, API |
 
-GitHub Actions runs the 49 app and model tests with the real weights on every push
+GitHub Actions runs the 50 app and model tests with the real weights on every push
 ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)).
 
 ## 14. Deployment
+
+**Hugging Face Spaces (free, recommended).** The free CPU tier (2 vCPU, 16 GB RAM, HTTPS) fits both
+models. A Space needs only the two files in [`deploy/huggingface/`](deploy/huggingface): the `Dockerfile`
+clones a tagged release of this repository (weights included), installs CPU-only PyTorch and starts
+gunicorn on port 7860 with `REQUIRE_MODEL=1`, `TRUST_PROXY=1` and `FRAME_ANCESTORS=https://huggingface.co`.
+Create a Docker Space, add that `Dockerfile`, and it builds automatically. Free Spaces sleep after 48 hours
+without visitors and wake on the next visit (about a minute).
 
 **Render / Railway (Linux).** Root directory `Flask Deployed App`, build command
 `pip install -r requirements.txt`, start command from the `Procfile`:
@@ -873,6 +881,7 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 │   └── runs/                       training histories, test metrics, logs (weights git-ignored)
 ├── scripts/                        benchmark, screenshots, HTML checks, asset generation
 ├── docs/images/                    performance figures (light and dark)
+├── deploy/huggingface/             Dockerfile and Space settings for Hugging Face Spaces
 ├── screenshots/                    37 app screenshots
 ├── test_images/                    43 sample leaf photos for the benchmark
 ├── Model/                          the original CNN training notebook

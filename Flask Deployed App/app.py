@@ -143,7 +143,7 @@ def create_app(config_class=Config) -> Flask:
         "default-src 'self'; script-src 'self' 'nonce-{nonce}'; style-src 'self'; "
         f"img-src 'self' data: blob: {ref_hosts}; font-src 'self'; connect-src 'self'; "
         "media-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; "
-        "form-action 'self'; frame-ancestors 'none'"
+        f"form-action 'self'; frame-ancestors {app.config['FRAME_ANCESTORS']}"
     )
 
     def asset(path: str) -> str:

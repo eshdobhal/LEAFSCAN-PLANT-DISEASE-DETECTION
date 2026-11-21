@@ -66,6 +66,19 @@ def test_security_headers(client):
     assert headers["X-Content-Type-Options"] == "nosniff"
     assert headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
     assert "camera=(self)" in headers["Permissions-Policy"]
+    assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]  # default: no framing
+
+
+def test_frame_ancestors_is_configurable():
+    """Hugging Face Spaces shows the app in a frame on huggingface.co, so that one site may be allowed."""
+    from app import create_app
+
+    class SpacesConfig(Config):
+        FRAME_ANCESTORS = "https://huggingface.co"
+        ENSEMBLE = False  # one model is enough here and loads faster
+
+    csp = create_app(SpacesConfig).test_client().get("/").headers["Content-Security-Policy"]
+    assert "frame-ancestors https://huggingface.co" in csp
 
 
 def test_no_third_party_assets(client):

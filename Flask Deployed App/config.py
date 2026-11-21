@@ -71,6 +71,9 @@ class Config:
     RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "30"))
     # Behind a hosting proxy (Render, Railway, nginx) set TRUST_PROXY=1 so the real client IP and https are used.
     TRUST_PROXY = _env_bool("TRUST_PROXY")
+    # Which sites may show this app inside a frame (CSP frame-ancestors). 'none' = no site may.
+    # On Hugging Face Spaces set FRAME_ANCESTORS=https://huggingface.co (the Space page frames the app).
+    FRAME_ANCESTORS = os.environ.get("FRAME_ANCESTORS", "'none'")
 
     # --- Web ---
     DEBUG = _env_bool("FLASK_DEBUG")

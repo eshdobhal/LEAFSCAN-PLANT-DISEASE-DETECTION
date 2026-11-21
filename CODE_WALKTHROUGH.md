@@ -41,8 +41,9 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
   - `ALLOWED_EXTENSIONS` / `ALLOWED_FORMATS` (line 57): what the filename may end with / what Pillow must detect inside.
   - `SAMPLES` (line 62): the "Try a sample" photos and their button labels.
   - `RATE_LIMIT_PER_MINUTE`, `TRUST_PROXY` (lines 71–73): flood protection; use the real client IP behind a proxy.
-  - `DEBUG` (line 76): only on with `FLASK_DEBUG=1`; never in production.
-  - `STATIC_VERSION`, `SEND_FILE_MAX_AGE_DEFAULT` (lines 77–78): cache static files for a year; bump the version to force refresh.
+  - `FRAME_ANCESTORS` (line 76): which sites may frame the app (CSP); `'none'` except on Hugging Face Spaces.
+  - `DEBUG` (line 79): only on with `FLASK_DEBUG=1`; never in production.
+  - `STATIC_VERSION`, `SEND_FILE_MAX_AGE_DEFAULT` (lines 80–81): cache static files for a year; bump the version to force refresh.
 
 ## `CNN.py` — the network (unchanged architecture)
 
@@ -187,4 +188,4 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
 - `scripts/screenshots.py`: Playwright screenshots + horizontal-overflow check at 320/375/1440 px.
 - `scripts/make_assets.py`: draws the SVG art and renders PNG icons and the OG image.
 - `.github/workflows/tests.yml`: GitHub Actions installs the app on Linux (CPU PyTorch) and runs the
-  49 app/model tests with the real weights and `REQUIRE_MODEL=1` on every push.
+  50 app/model tests with the real weights and `REQUIRE_MODEL=1` on every push.
