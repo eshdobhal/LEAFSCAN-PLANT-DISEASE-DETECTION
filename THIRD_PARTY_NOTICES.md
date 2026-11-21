@@ -1,12 +1,15 @@
 # Third-party notices
 
-LeafScan is by Esh Dobhal. It includes or was built from the third-party material below, each under its
-own licence. These attributions are kept because the licences require them.
+LeafScan is by Esh Dobhal and is released under the MIT License (see `LICENSE`). That licence covers
+Esh Dobhal's own work in this repository. It includes or was built from the third-party material below,
+which keeps its own terms and is **not** relicensed under MIT. These attributions are kept because the
+licences require them.
 
 ## Code and data inherited from an earlier project
 
 - `Flask Deployed App/CNN.py` (the original CNN architecture and the 39-class list),
-  `disease_info.csv`, `supplement_info.csv`, the `Model/` notebook and the `test_images/` samples come from
+  `disease_info.csv`, `supplement_info.csv`, the `Model/` notebook and the `test_images/` samples (four of which are copied into
+  `Flask Deployed App/static/img/samples/` for the Diagnose page) come from
   [Plant-Disease-Detection](https://github.com/manthan89-py/Plant-Disease-Detection) by Manthan Bhikadiya
   and Krishna Baldaniya. That repository publishes no licence file; check with its authors before
   redistributing those files or the original CNN weights.

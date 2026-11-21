@@ -16,6 +16,7 @@ confident it is, and tells you what to do next.
 ![Model: CAFormer-S18 hybrid ensemble](docs/badges/model.svg)
 ![Field photos: 71.1%](docs/badges/field-accuracy.svg)
 ![Lab photos: 99.6%](docs/badges/lab-accuracy.svg)
+[![License: MIT](docs/badges/license.svg)](LICENSE)
 
 **Author: Esh Dobhal**
 
@@ -49,6 +50,7 @@ confident it is, and tells you what to do next.
 17. [Limitations and future work](#17-limitations-and-future-work)
 18. [Documentation](#18-documentation)
 19. [Author](#19-author)
+20. [License](#20-license)
 
 ---
 
@@ -914,3 +916,14 @@ evaluation pipeline, the tests and the documentation.
 
 LeafScan uses public datasets and open-source libraries under their own licences; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## 20. License
+
+LeafScan is released under the [MIT License](LICENSE), © 2026 Esh Dobhal. You may use, copy, modify and
+distribute it, including commercially, as long as the copyright notice and licence text are kept.
+
+The MIT License covers the work in this repository authored by Esh Dobhal, including the trained
+`leafscan_hybrid*.pt` weights. It does not relicense third-party material, which keeps its own terms:
+`Flask Deployed App/CNN.py`, `disease_info.csv`, `supplement_info.csv`, `Model/`, `test_images/` and the sample photos
+in `static/img/samples/` (copied from `test_images/`) come from an earlier project that publishes no licence, and the datasets, fonts and icons have their own licences.
+Details are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
