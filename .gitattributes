@@ -3,3 +3,5 @@ Procfile text eol=lf
 *.png binary
 *.woff2 binary
 *.pt binary
+# Original training notebook: documentation, not part of the app's language statistics
+Model/** linguist-documentation
