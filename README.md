@@ -10,12 +10,12 @@ Photograph one leaf. LeafScan names the most likely of **26 diseases across 14 c
 confident it is, and tells you what to do next.
 
 [![Tests](https://github.com/eshdobhal/LEAFSCAN-PLANT-DISEASE-DETECTION/actions/workflows/tests.yml/badge.svg)](https://github.com/eshdobhal/LEAFSCAN-PLANT-DISEASE-DETECTION/actions/workflows/tests.yml)
-![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.9-EE4C2C?logo=pytorch&logoColor=white)
-![Model](https://img.shields.io/badge/Model-CAFormer--S18%20hybrid%20ensemble-2E7D4F)
-![Field accuracy](https://img.shields.io/badge/Field%20photos-71.1%25-2E7D4F)
-![Lab accuracy](https://img.shields.io/badge/Lab%20photos-99.6%25-2E7D4F)
+![Python 3.11+](docs/badges/python.svg)
+![Flask 3.1](docs/badges/flask.svg)
+![PyTorch 2.9](docs/badges/pytorch.svg)
+![Model: CAFormer-S18 hybrid ensemble](docs/badges/model.svg)
+![Field photos: 71.1%](docs/badges/field-accuracy.svg)
+![Lab photos: 99.6%](docs/badges/lab-accuracy.svg)
 
 **Author: Esh Dobhal**
 
