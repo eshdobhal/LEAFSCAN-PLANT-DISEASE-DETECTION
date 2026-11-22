@@ -122,6 +122,8 @@ All numbers are measured once on held-out photos the models never saw during tra
 | The page: the model loads once, then runs on the device | Result, computed in the browser |
 |---|---|
 | <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/web-home-desktop-dark.png"><img src="screenshots/web-home-desktop-light.png" alt="LeafScan browser version: diagnose page with the model ready"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/web-result-desktop-dark.png"><img src="screenshots/web-result-desktop-light.png" alt="LeafScan browser version: diagnosis result"></picture> |
+| **Treatments**: every product, with search and filters | **Treatments on a phone** |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/web-treatments-desktop-dark.png"><img src="screenshots/web-treatments-desktop-light.png" alt="LeafScan browser version: treatments page"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/web-treatments-mobile-dark.png"><img src="screenshots/web-treatments-mobile-light.png" alt="LeafScan browser version: treatments page on a phone" width="300"></picture> |
 
 ### Diagnose, treatments and about
 
@@ -861,8 +863,10 @@ flowchart LR
 | Browser page vs server, end to end (225 field photos) | Same diagnosis on 219/225 (97.3%); the rest differ only through the browser's image resizing |
 | Field accuracy, browser vs server | 72.0% vs 71.1% (the same within noise) |
 
-Trade-offs: the first visit downloads about 93 MB (cached afterwards), and there is no JSON API or
-server-side rate limit (none is needed: each visitor uses their own device). Files: [`web/`](web) and
+The site has two pages: **Diagnose** (upload, paste, camera, samples, result) and **Treatments** (every
+product, with the same search and filters as the Flask app). Trade-offs: the first visit to Diagnose downloads
+about 93 MB (cached afterwards; the Treatments page needs no model), and there is no JSON API or server-side
+rate limit (none is needed: each visitor uses their own device). Files: [`web/`](web) and
 [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
 ### Running the full Flask app on a server

@@ -1,53 +1,8 @@
-<!doctype html>
-<html lang="en-GB">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LeafScan · Leaf disease diagnosis in your browser</title>
-  <meta name="description" content="Photograph one leaf: LeafScan names the most likely of 26 diseases across 14 crops. The AI model runs entirely in your browser; your photo never leaves your device.">
-  <meta name="author" content="Esh Dobhal">
-  <meta name="theme-color" content="#1F5135">
-  <!-- Static site, so the security policy is a meta tag. 'wasm-unsafe-eval' lets ONNX Runtime run
-       WebAssembly; cdn.jsdelivr.net serves the pinned ONNX Runtime Web files. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
-  <script src="js/early.js"></script>
-  <link rel="preload" href="fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/web.css">
-  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="LeafScan · Leaf disease diagnosis in your browser">
-  <meta property="og:description" content="Photograph a leaf, get a diagnosis and care steps. Runs on your device.">
-  <meta property="og:image" content="img/og-image.png">
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-    <div class="container site-header__inner">
-      <a class="logo" href="./">
-        <img src="img/favicon.svg" alt="" width="28" height="28">
-        <span>LeafScan</span>
-      </a>
-      <button class="menu-toggle js-only" type="button" aria-expanded="false" aria-controls="site-nav">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#menu"></use></svg><span>Menu</span>
-      </button>
-      <nav id="site-nav" class="site-nav" aria-label="Main">
-        <ul>
-          <li><a href="#diagnose">Diagnose</a></li>
-          <li><a href="#about">How it works</a></li>
-          <li><a href="https://github.com/eshdobhal/LEAFSCAN-PLANT-DISEASE-DETECTION" rel="noopener noreferrer">Source code</a></li>
-        </ul>
-      </nav>
-      <button class="theme-toggle js-only" type="button" aria-label="Theme: system" title="Switch colour theme">
-        <svg class="icon icon--light" aria-hidden="true" focusable="false"><use href="icons.svg#sun"></use></svg><svg class="icon icon--dark" aria-hidden="true" focusable="false"><use href="icons.svg#moon"></use></svg><svg class="icon icon--system" aria-hidden="true" focusable="false"><use href="icons.svg#monitor"></use></svg>
-      </button>
-    </div>
-  </header>
-
+{% extends "base.html" %}
+{% set page = "diagnose" %}
+{% block title %}LeafScan · Leaf disease diagnosis in your browser{% endblock %}
+{% block description %}Photograph one leaf: LeafScan names the most likely of 26 diseases across 14 crops. The AI model runs entirely in your browser; your photo never leaves your device.{% endblock %}
+{% block content %}
   <noscript>
     <div class="demo-banner" role="note"><div class="container">
       This browser version needs JavaScript: the AI model runs on your device.
@@ -158,24 +113,8 @@
       </div>
     </section>
   </main>
-
-  <footer class="site-footer">
-    <div class="container site-footer__inner">
-      <div>
-        <p class="logo logo--footer">LeafScan</p>
-        <p class="muted">Leaf disease diagnosis in seconds.</p>
-      </div>
-      <p class="site-footer__disclaimer">
-        LeafScan gives an automated first opinion, not a professional diagnosis.
-        Confirm serious problems with a local agricultural extension officer before treating crops.
-      </p>
-      <p class="site-footer__credit">
-        Designed and built by Esh Dobhal · © 2026 · MIT License ·
-        <a href="https://github.com/eshdobhal/LEAFSCAN-PLANT-DISEASE-DETECTION" rel="noopener noreferrer">Source code</a>
-      </p>
-    </div>
-  </footer>
-
+{% endblock %}
+{% block after_footer %}
   <dialog class="camera" data-camera aria-labelledby="camera-title">
     <div class="camera__head">
       <h2 id="camera-title" class="h3">Take a photo</h2>
@@ -192,10 +131,9 @@
       <button class="btn btn--primary" type="button" data-camera-use hidden><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#check"></use></svg>Use photo</button>
     </div>
   </dialog>
-
+{% endblock %}
+{% block scripts %}
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"></script>
-  <script src="js/theme.js" defer></script>
   <script src="js/diagnose.js" defer></script>
   <script src="js/app.js" defer></script>
-</body>
-</html>
+{% endblock %}

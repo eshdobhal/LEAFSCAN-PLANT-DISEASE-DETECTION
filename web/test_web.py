@@ -80,6 +80,36 @@ def main():
         overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         if overflow > 0:
             failures.append(f"horizontal overflow {overflow}px")
+
+        # Treatments page: reached from the nav, every product listed, the app's filters work.
+        treatments = browser.new_page(viewport={"width": 1280, "height": 900})
+        treatments.on("console", lambda m: m.type == "error" and errors.append(m.text))
+        treatments.on("pageerror", lambda e: errors.append(str(e)))
+        treatments.goto(url)
+        treatments.click("#site-nav a[href='treatments.html']")
+        expect(treatments.locator("h1")).to_have_text("Treatments & fertilisers")
+        expect(treatments.locator("#site-nav a[aria-current=page]")).to_have_text("Treatments")
+        cards = treatments.locator("[data-products] > .product:visible")
+        total = cards.count()
+        treatments.click("[data-kind=fertiliser]")
+        treatments.click("[data-crop=tomato]")
+        expect(cards).to_have_count(1)
+        treatments.click("[data-kind=all]")
+        treatments.click("[data-crop=all]")
+        treatments.fill("[data-search]", "blight")
+        expect(cards).to_have_count(6)
+        expect(treatments.locator("[data-count]")).to_have_text("6 products")
+        treatments.fill("[data-search]", "zzz")
+        expect(treatments.locator("[data-empty]")).to_be_visible()
+        print(f"treatments: {total} products; Fertilisers + Tomato = 1, 'blight' = 6, empty state shown")
+        for width in (1280, 375, 320):
+            treatments.set_viewport_size({"width": width, "height": 800})
+            over = treatments.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            if over > 0:
+                failures.append(f"treatments overflows by {over}px at {width}px")
+        if total != 38:
+            failures.append(f"expected 38 products, found {total}")
+
         if errors:
             failures.append("console errors: " + " | ".join(errors[:5]))
 

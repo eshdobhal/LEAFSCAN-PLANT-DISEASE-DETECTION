@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% set page = "treatments" %}
+{% block title %}Treatments · LeafScan{% endblock %}
+{% block description %}Treatments for {{ stats.diseases }} leaf diseases and fertilisers for healthy plants across {{ stats.crops }} crops.{% endblock %}
+{% block content %}
+  <main id="main">
+    <div class="container section">
+      <h1>Treatments &amp; fertilisers</h1>
+      <p class="lead">One suggested product for each condition the model can detect. Links go to third-party shops:
+        follow label instructions and local agricultural advice.</p>
+
+      {# Filters only appear with JavaScript; without it, every product is listed. treatments.js is the
+         Flask app's own filter script, unchanged. #}
+      <div class="filters js-only" data-filters>
+        <label class="field">
+          <span class="field__label">Search</span>
+          <input class="input" type="search" placeholder="Crop, disease or product" data-search autocomplete="off">
+        </label>
+        <div class="segmented" role="group" aria-label="Product type">
+          <button type="button" aria-pressed="true" data-kind="all">All</button>
+          <button type="button" aria-pressed="false" data-kind="treatment">Disease treatments</button>
+          <button type="button" aria-pressed="false" data-kind="fertiliser">Fertilisers</button>
+        </div>
+        <div class="chips" role="group" aria-label="Crop">
+          <button class="chip-btn" type="button" aria-pressed="true" data-crop="all">All crops</button>
+          {% for crop in crops %}
+          <button class="chip-btn" type="button" aria-pressed="false" data-crop="{{ crop.slug }}">{{ crop.name }}</button>
+          {% endfor %}
+        </div>
+        <p class="hint" aria-live="polite" data-count>{{ products | length }} products</p>
+      </div>
+
+      <div class="product-grid" data-products>
+        {% for c in products %}
+        <article class="product card" data-crop="{{ c.crop_slug }}" data-kind="{{ c.product_kind }}"
+          data-search="{{ (c.crop ~ ' ' ~ c.condition ~ ' ' ~ c.product_name) | lower }}">
+          <img class="product__img" src="img/products/{{ c.product_kind }}.svg" alt="" width="96" height="96" loading="lazy">
+          <div class="product__body">
+            <p class="eyebrow">{{ "Fertiliser" if c.is_healthy else "Treatment" }} · {{ c.label }}</p>
+            <h2 class="product__name">{{ c.product_name }}</h2>
+            <a class="btn btn--ghost btn--sm" href="{{ c.product_link }}" target="_blank" rel="noopener noreferrer">
+              {{ icon("shopping-bag") }}View product<span class="visually-hidden"> (opens a third-party shop in a new tab)</span>
+            </a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="empty" data-empty hidden>No products match. Try another crop or search term.</p>
+
+      <p class="cluster"><a class="btn btn--primary" href="./#diagnose">{{ icon("camera") }}Diagnose a leaf</a></p>
+    </div>
+  </main>
+{% endblock %}
+{% block scripts %}
+  <script src="js/treatments.js" defer></script>
+{% endblock %}
