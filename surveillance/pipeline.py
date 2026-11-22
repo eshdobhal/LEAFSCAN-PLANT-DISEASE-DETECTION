@@ -3,7 +3,9 @@
 One photo (or video) in; one report out. Components, each optional and each with its own trained model:
   classify      disease of the leaf            CAFormer-S18 ensemble (the LeafScan web app's model)
   detect        diseased leaves, with boxes    RetinaNet-ResNet50 trained on PlantDoc (13 crops)
-  pests         pest damage, with boxes        RetinaNet-ResNet50 trained on tea field photos (2 pests)
+  pests         pest damage, with boxes        RetinaNet-ResNet50 trained on tea field photos (2 pests);
+                                               runs only when the crop is declared as tea (crop="tea"), because
+                                               on other crops it mistakes disease spots for pest damage
   segment       damaged tissue, per pixel      DeepLabV3-ResNet50 -> lesion count, severity % and grade 0-5
   forecast      7-day severity outlook         LSTM, from a severity/weather history (CSV), if given
 
@@ -27,6 +29,7 @@ APP = ROOT / "Flask Deployed App"
 RUNS = ROOT / "surveillance" / "runs"
 sys.path.insert(0, str(APP))
 
+PEST_CROPS = {"tea"}  # crops the pest model was trained on; see docs/MODEL_CARD.md, "out-of-scope use"
 DETECT_THRESHOLD = 0.40  # box confidence shown in reports (precision/recall trade-off chosen on validation)
 CONFIDENCE_THRESHOLD = 0.80
 
@@ -48,7 +51,8 @@ class Report:
 
 
 class Surveillance:
-    def __init__(self, components=("classify", "detect", "pests", "segment", "forecast"), device=None):
+    def __init__(self, components=("classify", "detect", "pests", "segment", "forecast"), device=None, crop=None):
+        self.crop = crop.lower() if crop else None
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         torch.set_num_threads(4)
         self.components = []
@@ -154,6 +158,13 @@ class Surveillance:
         for comp in self.components:
             if comp == "forecast" and not history_csv:
                 continue
+            if comp == "classify" and self.crop in PEST_CROPS:
+                report.notes.append(f"Disease classification skipped: the classifier was not trained on {self.crop}.")
+                continue
+            if comp == "pests" and self.crop not in PEST_CROPS:
+                report.notes.append("Pest detection skipped: the pest model was trained on tea only and mistakes disease "
+                                    "spots on other crops for pests. Use crop='tea' (CLI: --crop tea) for tea photos.")
+                continue
             t = time.perf_counter()
             getattr(self, comp)(history_csv if comp == "forecast" else img, report)
             report.timings_ms[comp] = round((time.perf_counter() - t) * 1000, 1)
@@ -173,10 +184,19 @@ class Surveillance:
             canvas = Image.composite(Image.blend(canvas, red, 0.45), canvas, m)
         draw = ImageDraw.Draw(canvas)
         width = max(2, canvas.size[0] // 300)
+        size = max(13, canvas.size[0] // 45)
+        try:
+            font = ImageFont.load_default(size=size)
+        except TypeError:  # Pillow < 10.1
+            font = ImageFont.load_default()
         for dets, colour in ((report.detections, (42, 120, 214)), (report.pests, (235, 104, 52))):
             for d in dets:
                 draw.rectangle(d["box_xyxy"], outline=colour, width=width)
-                draw.text((d["box_xyxy"][0] + 3, d["box_xyxy"][1] + 2), f"{d['label']} {d['score']:.0%}", fill=colour)
+                text = f"{d['label']} {d['score']:.0%}"
+                x0, y0 = d["box_xyxy"][0], max(0, d["box_xyxy"][1] - size - 6)
+                tw = draw.textlength(text, font=font)
+                draw.rectangle([x0, y0, x0 + tw + 8, y0 + size + 6], fill=colour)
+                draw.text((x0 + 4, y0 + 2), text, fill=(255, 255, 255), font=font)
         lines = []
         if report.classification:
             c = report.classification
@@ -187,13 +207,13 @@ class Surveillance:
         if report.pests:
             lines.append(f"pests: {len(report.pests)} detection(s)")
         lines += [f"! {a}" for a in report.alerts[:3]]
-        panel_h = 18 * len(lines) + 12
+        line_h = size + 8
+        panel_h = line_h * len(lines) + 14
         out = Image.new("RGB", (canvas.size[0], canvas.size[1] + panel_h), (252, 252, 251))
         out.paste(canvas, (0, 0))
         d2 = ImageDraw.Draw(out)
-        font = ImageFont.load_default()
         for i, line in enumerate(lines):
-            d2.text((8, canvas.size[1] + 6 + 18 * i), line[:120], fill=(11, 11, 11), font=font)
+            d2.text((10, canvas.size[1] + 8 + line_h * i), line[:120], fill=(11, 11, 11), font=font)
         return out
 
     def analyze_video(self, path, every=15, out_dir=None):

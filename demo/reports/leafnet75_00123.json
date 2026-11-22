@@ -1,0 +1,57 @@
+{
+ "image": "leafnet75_00123.jpg",
+ "classification": {
+  "label": "Tomato \u00b7 Bacterial spot",
+  "key": "Tomato___Bacterial_spot",
+  "is_healthy": false,
+  "is_background": false,
+  "confidence": 0.8986,
+  "top3": [
+   {
+    "label": "Tomato \u00b7 Bacterial spot",
+    "confidence": 0.8986
+   },
+   {
+    "label": "Tomato \u00b7 Septoria leaf spot",
+    "confidence": 0.013
+   },
+   {
+    "label": "Tomato \u00b7 Yellow leaf curl virus",
+    "confidence": 0.0031
+   }
+  ],
+  "low_confidence": false
+ },
+ "detections": [
+  {
+   "label": "Tomato Septoria Leaf Spot",
+   "score": 0.568,
+   "box_xyxy": [
+    114.9,
+    92.8,
+    207.8,
+    230.9
+   ]
+  }
+ ],
+ "pests": [],
+ "segmentation": {
+  "lesion_count": 1,
+  "severity_percent": 34.8,
+  "severity_grade_0_to_5": 4
+ },
+ "forecast": {},
+ "alerts": [
+  "Severe damage: about 35% of the leaf (grade 4/5)."
+ ],
+ "timings_ms": {
+  "classify": 249.0,
+  "detect": 558.3,
+  "segment": 559.7,
+  "total": 1367.0
+ },
+ "notes": [
+  "Pest detection skipped: the pest model was trained on tea only and mistakes disease spots on other crops for pests. Use crop='tea' (CLI: --crop tea) for tea photos.",
+  "Automated first opinion, not professional advice. Confirm with an extension officer."
+ ]
+}

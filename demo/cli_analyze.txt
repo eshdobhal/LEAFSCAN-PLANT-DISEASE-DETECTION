@@ -1,0 +1,9 @@
+leafnet75_00036.jpg: Tomato · Bacterial spot (91%) | severity 4.8% | 1531.9 ms
+leafnet75_00063.jpg: Tomato · Late blight (91%) | severity 34.4% | 1647.2 ms
+  ! Severe damage: about 34% of the leaf (grade 4/5).
+leafnet75_00098.jpg: Tomato · Early blight (92%) | severity 16.9% | 1512.2 ms
+  ! Severe damage: about 17% of the leaf (grade 3/5).
+leafnet75_00123.jpg: Tomato · Bacterial spot (90%) | severity 34.8% | 1367.0 ms
+  ! Severe damage: about 35% of the leaf (grade 4/5).
+plantvillage_potato_late_blight.jpg: Potato · Late blight (90%) | severity 0.0% | 1251.2 ms
+exit code 2

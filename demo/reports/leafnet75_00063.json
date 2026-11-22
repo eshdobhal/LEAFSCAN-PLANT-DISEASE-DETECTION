@@ -1,0 +1,57 @@
+{
+ "image": "leafnet75_00063.jpg",
+ "classification": {
+  "label": "Tomato \u00b7 Late blight",
+  "key": "Tomato___Late_blight",
+  "is_healthy": false,
+  "is_background": false,
+  "confidence": 0.9102,
+  "top3": [
+   {
+    "label": "Tomato \u00b7 Late blight",
+    "confidence": 0.9102
+   },
+   {
+    "label": "Potato \u00b7 Early blight",
+    "confidence": 0.0054
+   },
+   {
+    "label": "Tomato \u00b7 Early blight",
+    "confidence": 0.0052
+   }
+  ],
+  "low_confidence": false
+ },
+ "detections": [
+  {
+   "label": "Tomato Early Blight Leaf",
+   "score": 0.411,
+   "box_xyxy": [
+    33.0,
+    2.1,
+    279.0,
+    400.0
+   ]
+  }
+ ],
+ "pests": [],
+ "segmentation": {
+  "lesion_count": 2,
+  "severity_percent": 34.4,
+  "severity_grade_0_to_5": 4
+ },
+ "forecast": {},
+ "alerts": [
+  "Severe damage: about 34% of the leaf (grade 4/5)."
+ ],
+ "timings_ms": {
+  "classify": 308.4,
+  "detect": 691.2,
+  "segment": 647.6,
+  "total": 1647.2
+ },
+ "notes": [
+  "Pest detection skipped: the pest model was trained on tea only and mistakes disease spots on other crops for pests. Use crop='tea' (CLI: --crop tea) for tea photos.",
+  "Automated first opinion, not professional advice. Confirm with an extension officer."
+ ]
+}

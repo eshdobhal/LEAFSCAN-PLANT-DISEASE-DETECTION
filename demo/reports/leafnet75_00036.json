@@ -1,0 +1,55 @@
+{
+ "image": "leafnet75_00036.jpg",
+ "classification": {
+  "label": "Tomato \u00b7 Bacterial spot",
+  "key": "Tomato___Bacterial_spot",
+  "is_healthy": false,
+  "is_background": false,
+  "confidence": 0.9079,
+  "top3": [
+   {
+    "label": "Tomato \u00b7 Bacterial spot",
+    "confidence": 0.9079
+   },
+   {
+    "label": "Tomato \u00b7 Septoria leaf spot",
+    "confidence": 0.007
+   },
+   {
+    "label": "Grape \u00b7 Leaf blight (isariopsis leaf spot)",
+    "confidence": 0.0031
+   }
+  ],
+  "low_confidence": false
+ },
+ "detections": [
+  {
+   "label": "Tomato Septoria Leaf Spot",
+   "score": 0.47,
+   "box_xyxy": [
+    168.1,
+    316.6,
+    789.0,
+    1006.1
+   ]
+  }
+ ],
+ "pests": [],
+ "segmentation": {
+  "lesion_count": 8,
+  "severity_percent": 4.8,
+  "severity_grade_0_to_5": 1
+ },
+ "forecast": {},
+ "alerts": [],
+ "timings_ms": {
+  "classify": 291.9,
+  "detect": 542.1,
+  "segment": 697.9,
+  "total": 1531.9
+ },
+ "notes": [
+  "Pest detection skipped: the pest model was trained on tea only and mistakes disease spots on other crops for pests. Use crop='tea' (CLI: --crop tea) for tea photos.",
+  "Automated first opinion, not professional advice. Confirm with an extension officer."
+ ]
+}

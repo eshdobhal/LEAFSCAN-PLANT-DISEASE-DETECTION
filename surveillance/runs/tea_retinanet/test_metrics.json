@@ -1,0 +1,22 @@
+{
+ "mAP": 0.7096,
+ "mAP50": 0.9883,
+ "mAP75": 0.8568,
+ "mAR100": 0.7663,
+ "AP_per_class": {
+  "black rot": 0.6608,
+  "leaf rust": 0.666,
+  "red spider mite (pest)": 0.7517,
+  "tea mosquito bug (pest)": 0.6484,
+  "healthy tea leaf": 0.8505,
+  "white spot": 0.6799
+ },
+ "pest_mAP": 0.7001,
+ "pest_AP50": {
+  "red spider mite (pest)": 0.9641,
+  "tea mosquito bug (pest)": 0.9751
+ },
+ "cpu_latency_ms": 283.7,
+ "parameters_M": 36.5,
+ "test_images": 406
+}

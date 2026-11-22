@@ -1,0 +1,46 @@
+{
+ "image": "tea_test_08048.jpg",
+ "classification": {},
+ "detections": [],
+ "pests": [
+  {
+   "label": "tea mosquito bug (pest)",
+   "score": 1.0,
+   "box_xyxy": [
+    227.5,
+    201.7,
+    376.7,
+    431.4
+   ]
+  },
+  {
+   "label": "tea mosquito bug (pest)",
+   "score": 0.994,
+   "box_xyxy": [
+    89.8,
+    23.7,
+    152.9,
+    248.6
+   ]
+  }
+ ],
+ "segmentation": {
+  "lesion_count": 2,
+  "severity_percent": 1.2,
+  "severity_grade_0_to_5": 1
+ },
+ "forecast": {},
+ "alerts": [
+  "Possible pest damage: tea mosquito bug (pest). Note: the pest model was trained on tea leaves."
+ ],
+ "timings_ms": {
+  "detect": 387.9,
+  "pests": 344.7,
+  "segment": 575.0,
+  "total": 1307.6
+ },
+ "notes": [
+  "Disease classification skipped: the classifier was not trained on tea.",
+  "Automated first opinion, not professional advice. Confirm with an extension officer."
+ ]
+}

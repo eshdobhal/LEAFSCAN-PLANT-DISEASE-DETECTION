@@ -38,6 +38,7 @@ scripts below re-create every split exactly.*
 | Tea: classes too rare to learn or measure | "Brown blight" 2 boxes and "disease" 1 box after de-duplication | Those 3 boxes dropped, reported |
 | LeafNet75 duplicates | none (MD5) | — |
 | PlantDoc-corrected cross-split duplicates | none after the upstream fix (checked again by MD5) | — |
+| PlantDoc-corrected label files the Hub cannot serve | 2 (one train, one validation; both stock photos of strawberry leaves) | Those 2 images excluded rather than trained as "no objects" |
 
 ## Labels
 

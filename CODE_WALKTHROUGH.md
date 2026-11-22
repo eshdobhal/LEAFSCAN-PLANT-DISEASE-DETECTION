@@ -204,7 +204,8 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
   `ENSEMBLE` is on, ensemble top-3 output, hybrid normalisation at 224 and 288 px.
 - `tests/test_app.py`: pages, redirects, uploads (real test images, PNG modes, empty, fake, too big,
   path traversal), API schema and errors, headers, catalog flags, samples (each one diagnosed correctly,
-  unknown names → 404), author credit, rate limiting. Accuracy assertions skip in demo mode.
+  unknown names → 404), author credit, rate limiting, and responsible use (R13: the disclaimer on every
+  result and in the API, the "not sure" warning, no uploaded photo written to disk). Accuracy assertions skip in demo mode.
 - `tests/test_e2e.py` (run with `E2E=1`): a real Chromium browser clicks through the app: upload → result,
   sample button, 4000 px PNG resized to 1024 px in the browser, non-image error, fake-camera capture,
   treatment filters, theme persistence, phone menu, no-JavaScript upload, no sideways scrolling at
@@ -214,4 +215,45 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
 - `scripts/screenshots.py`: Playwright screenshots + horizontal-overflow check at 320/375/1440 px.
 - `scripts/make_assets.py`: draws the SVG art and renders PNG icons and the OG image.
 - `.github/workflows/tests.yml`: GitHub Actions installs the app on Linux (CPU PyTorch) and runs the
-  50 app/model tests with the real weights and `REQUIRE_MODEL=1` on every push.
+  53 app/model tests with the real weights and `REQUIRE_MODEL=1` on every push.
+
+---
+
+## Fundamentals (`fundamentals/`, NumPy only; brief items 3–6)
+
+| File | What it does |
+|---|---|
+| `tensors.py` | `describe` (shape, rank, strides), `image_to_batch` (NHWC → NCHW), broadcasting helpers, inner products and cosine similarity, `svd_compress` / `svd_energy`, `numerical_gradient` (central differences) and `relative_error` |
+| `neurons.py` | step/sigmoid/tanh/ReLU with derivatives; `McCullochPitts` units for AND/OR/NOT; `SigmoidNeuron` |
+| `mlp.py` | `Dense`, `Activation`, `BatchNorm`, `Dropout` layers with `forward`/`backward`; `softmax`, `cross_entropy`; `MLP`; `RunLog` keeps learned parameters and hyperparameters apart; `train` |
+| `optim.py` | `SGD`, `Momentum`, `Nesterov` (look-ahead form) |
+| `hebbian.py` | `hebbian`, `oja` (modified Hebbian), `competitive` (winner-take-all, farthest-point seeding), `perceptron`, `delta_rule`, `RBM` (CD-1, free energy) |
+| `data.py` | 8-class, 24 px PlantVillage subset from the leaf-grouped split, cached in `data/fundamentals_leaves.npz` |
+| `experiments/*.py` | `sandbox` (tensors, SVD, gradient check), `mlp_ablations` (6 studies × 3 seeds), `learning_rules`; write `fundamentals/results/` |
+| `tests/` | gradient checks for every layer (absolute tolerance where the true gradient is 0, e.g. a bias before BatchNorm) and unit tests: 29 tests |
+
+## Surveillance system (`surveillance/`; brief items 2, 7–10)
+
+| File | What it does |
+|---|---|
+| `prepare_data.py` | Tea Parquet → YOLO folders with MD5 de-duplication (72% duplicates); LeafNet75 → images/masks + seeded split; `results/data_report.json` |
+| `detection.py` | `YoloDetection` dataset (images without a label file are skipped); `build` RetinaNet / Faster R-CNN (COCO v2 weights); `train` (SGD, warm-up + cosine, fp16); `evaluate` (COCO mAP with torchmetrics, per-class AP, pest AP, CPU latency); `yolo` benchmark scored with the same code |
+| `segmentation.py` | DeepLabV3 / FCN (`aux_loss=True`), `lesion_instances` (connected regions > 20 px), `lesion_f1`, `leaf_area` (excess green), `severity` → % and grade 0–5; Mask R-CNN on lesion instances |
+| `progression.py` | `simulate` (Vanderplank logistic + weather + sprays), `windows` (14-day look-back, 7-day horizon), `Forecaster` (RNN or LSTM predicting the change from today), baselines, `gate_activations` |
+| `generative.py` | conditional VAE and conditional DCGAN on an imbalanced 64 px set; 5 augmentation variants × 3 seeds; latent PCA / t-SNE and interpolation figures |
+| `convviz.py` | `conv2d_by_hand`, `conv3d_by_hand` (checked against SciPy / PyTorch), ResNet filters and feature maps, Grad-CAM on the shipped CAFormer, 3D temporal kernel on a lesion time-lapse |
+| `pipeline.py` | `Surveillance`: loads each component that has weights; `analyze` → `Report` + annotated image; `PEST_CROPS = {"tea"}` gate (pests only for tea, classifier skipped for tea); `analyze_video` (every Nth frame → timeline) |
+| `cli.py` | `analyze`, `video`, `status`; `--crop`, `--history`, `--only`, `--device`; exit codes 0 / 2 (alerts) / 1 |
+| `evaluate_all.py` | classifier benchmark with ECE before/after temperature scaling (fitted on validation), 16 corruptions, pest out-of-domain test, detection/segmentation summaries, CPU latency and memory → `results/evaluation.json`, `EVALUATION_SUMMARY.md` |
+| `run_experiments.sh` | the training queue: every segmentation, detection, YOLO and generative run with its evaluation |
+| `tests/test_surveillance.py` | 16 tests: YOLO labels → pixel boxes and flipped boxes, lesion instances and F1, severity grades, temperature scaling and ECE, 2D/3D convolution by hand, simulated epidemics, forecaster shapes, CLI report and exit code |
+
+`training/train_hybrid.py --arch resnet50|googlenet` trains the classification baselines with the CAFormer
+recipe; `training/common.py` `run_arch` reads each run's `config.json`, so `evaluate.py` rebuilds the right network.
+
+## Demo (`demo/`)
+
+`make_history.py` (simulated field history for the forecast), `make_clip.py` (the SYNTHETIC scouting clip),
+`record_browser.py` (Playwright recording of the live site), `make_video.py` (assembles
+`docs/demo/leafscan_demo.mp4` with H.264 via imageio-ffmpeg; its results card reads the result files).
+`cli_*.txt`, `reports/`, `forecast_report/` and `video_report/` are the real CLI outputs shown in the video.

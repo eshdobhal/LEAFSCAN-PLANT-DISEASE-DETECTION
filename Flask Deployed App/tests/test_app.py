@@ -258,3 +258,50 @@ def test_rate_limiter_window_expires():
     assert limiter.allow("b", 1)  # other clients are counted separately
     time.sleep(0.06)
     assert limiter.allow("a", 1)
+
+
+# --- Responsible use (requirement R13) -------------------------------------
+
+def test_every_result_carries_the_disclaimer(client):
+    from app import DISCLAIMER
+    body = html.unescape(client.post("/diagnose", data=upload(TEST_IMAGES / "Apple_scab.JPG"),
+                                     content_type="multipart/form-data").get_data(as_text=True))
+    assert DISCLAIMER in body
+    api = client.post("/api/predict", data=upload(TEST_IMAGES / "Apple_scab.JPG"), content_type="multipart/form-data")
+    assert api.get_json()["notice"] == DISCLAIMER
+
+
+def test_low_confidence_shows_not_sure_warning():
+    from app import create_app
+
+    class Strict(Config):
+        CONFIDENCE_THRESHOLD = 1.01  # no prediction can reach it, so every result is "not sure"
+        RATE_LIMIT_PER_MINUTE = 0
+    client = create_app(Strict).test_client()
+    body = html.unescape(client.post("/diagnose", data=upload(TEST_IMAGES / "Apple_scab.JPG"),
+                                     content_type="multipart/form-data").get_data(as_text=True))
+    assert "The model isn't sure." in body
+    api = client.post("/api/predict", data=upload(TEST_IMAGES / "Apple_scab.JPG"), content_type="multipart/form-data")
+    assert api.get_json()["low_confidence"] is True
+
+
+def test_uploaded_photos_are_never_written_to_disk(client, tmp_path):
+    import tempfile
+    from pathlib import Path
+
+    from conftest import APP_DIR
+
+    def snapshot():
+        files = {p for p in APP_DIR.rglob("*") if p.is_file() and "__pycache__" not in p.parts and ".pytest_cache" not in p.parts}
+        temp = {p for p in Path(tempfile.gettempdir()).iterdir() if p.is_file()}
+        return files, temp
+    before_app, before_tmp = snapshot()
+    marker = (TEST_IMAGES / "Apple_scab.JPG").read_bytes()
+    for _ in range(3):
+        client.post("/diagnose", data=upload(marker), content_type="multipart/form-data")
+        client.post("/api/predict", data=upload(marker), content_type="multipart/form-data")
+    after_app, after_tmp = snapshot()
+    assert after_app == before_app
+    new_temp = [p for p in after_tmp - before_tmp if p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", "")
+                and p.stat().st_size >= len(marker) // 2]
+    assert not new_temp, new_temp

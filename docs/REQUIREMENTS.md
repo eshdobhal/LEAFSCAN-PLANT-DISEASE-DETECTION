@@ -47,7 +47,7 @@ LeafScan Surveillance turns a phone photo (or a scouting video) into:
 | R10 | Fast enough in the field | classifier ≤ 1 s and full pipeline ≤ 3 s per photo on a 4-thread CPU | `surveillance/evaluate_all.py` |
 | R11 | Cheap to host | web app ≤ 1 GB RAM; full pipeline ≤ 2.5 GB RAM | `surveillance/evaluate_all.py` |
 | R12 | Explainable | Grad-CAM evidence maps available for the classifier | `surveillance/convviz.py` |
-| R13 | Safe use | "not sure" warning below 80%; disclaimer on every result; no photo stored | `Flask Deployed App/tests/` (65 tests) |
+| R13 | Safe use | "not sure" warning below 80%; disclaimer on every result; no photo stored | `Flask Deployed App/tests/` (68 tests, 3 of them for exactly this) |
 | R14 | Reproducible | pinned dependencies, fixed seeds, one-command test suites, documented data splits | CI + `README.md` |
 
 ## 4. Deployment constraints

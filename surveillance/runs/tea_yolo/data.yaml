@@ -1,0 +1,5 @@
+path: C:/Users/Esh/Downloads/Plant-Disease-Detection-main/Plant-Disease-Detection-main/data/tea_pest/yolo
+train: images/train
+val: images/val
+test: images/test
+names: {"0": "black rot", "1": "leaf rust", "2": "red spider mite (pest)", "3": "tea mosquito bug (pest)", "4": "healthy tea leaf", "5": "white spot"}

@@ -49,8 +49,11 @@ class YoloDetection(Dataset):
 
     def __init__(self, name, split, train=False):
         base = DATASETS[name]
-        self.images = sorted(p for p in (base / "images" / split).iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png"))
         self.labels = base / "labels" / split
+        # Only images that have a label file (an empty file = a photo with no objects). PlantDoc-corrected has
+        # 2 images whose label files the Hub cannot serve; without this they would be taught as background.
+        self.images = sorted(p for p in (base / "images" / split).iterdir()
+                             if p.suffix.lower() in (".jpg", ".jpeg", ".png") and (self.labels / (p.stem + ".txt")).exists())
         self.train = train
 
     def __len__(self):

@@ -1,0 +1,190 @@
+[
+ {
+  "frame": 0,
+  "seconds": 0.0,
+  "label": "Tomato \u00b7 Septoria leaf spot",
+  "confidence": 0.9046,
+  "severity_percent": 0.0,
+  "pests": 0,
+  "alerts": []
+ },
+ {
+  "frame": 15,
+  "seconds": 1.0,
+  "label": "Tomato \u00b7 Septoria leaf spot",
+  "confidence": 0.9026,
+  "severity_percent": 0.0,
+  "pests": 0,
+  "alerts": []
+ },
+ {
+  "frame": 30,
+  "seconds": 2.0,
+  "label": "Tomato \u00b7 Septoria leaf spot",
+  "confidence": 0.8824,
+  "severity_percent": 0.0,
+  "pests": 0,
+  "alerts": []
+ },
+ {
+  "frame": 45,
+  "seconds": 3.0,
+  "label": "Tomato \u00b7 Bacterial spot",
+  "confidence": 0.895,
+  "severity_percent": 9.8,
+  "pests": 0,
+  "alerts": []
+ },
+ {
+  "frame": 60,
+  "seconds": 4.0,
+  "label": "Tomato \u00b7 Bacterial spot",
+  "confidence": 0.8918,
+  "severity_percent": 9.5,
+  "pests": 0,
+  "alerts": []
+ },
+ {
+  "frame": 75,
+  "seconds": 5.0,
+  "label": "Tomato \u00b7 Bacterial spot",
+  "confidence": 0.8806,
+  "severity_percent": 11.5,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 11% of the leaf (grade 3/5)."
+  ]
+ },
+ {
+  "frame": 90,
+  "seconds": 6.0,
+  "label": "Tomato \u00b7 Septoria leaf spot",
+  "confidence": 0.8888,
+  "severity_percent": 50.3,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 50% of the leaf (grade 5/5)."
+  ]
+ },
+ {
+  "frame": 105,
+  "seconds": 7.0,
+  "label": "Tomato \u00b7 Septoria leaf spot",
+  "confidence": 0.9054,
+  "severity_percent": 51.8,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 52% of the leaf (grade 5/5)."
+  ]
+ },
+ {
+  "frame": 120,
+  "seconds": 8.0,
+  "label": "Tomato \u00b7 Septoria leaf spot",
+  "confidence": 0.8983,
+  "severity_percent": 37.1,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 37% of the leaf (grade 4/5)."
+  ]
+ },
+ {
+  "frame": 135,
+  "seconds": 9.0,
+  "label": "Tomato \u00b7 Bacterial spot",
+  "confidence": 0.894,
+  "severity_percent": 13.3,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 13% of the leaf (grade 3/5)."
+  ]
+ },
+ {
+  "frame": 150,
+  "seconds": 10.0,
+  "label": "Tomato \u00b7 Bacterial spot",
+  "confidence": 0.8897,
+  "severity_percent": 14.1,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 14% of the leaf (grade 3/5)."
+  ]
+ },
+ {
+  "frame": 165,
+  "seconds": 11.0,
+  "label": "Tomato \u00b7 Bacterial spot",
+  "confidence": 0.8938,
+  "severity_percent": 13.6,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 14% of the leaf (grade 3/5)."
+  ]
+ },
+ {
+  "frame": 180,
+  "seconds": 12.0,
+  "label": "Tomato \u00b7 Leaf mold",
+  "confidence": 0.9029,
+  "severity_percent": 42.1,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 42% of the leaf (grade 4/5)."
+  ]
+ },
+ {
+  "frame": 195,
+  "seconds": 13.0,
+  "label": "Tomato \u00b7 Leaf mold",
+  "confidence": 0.9045,
+  "severity_percent": 38.8,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 39% of the leaf (grade 4/5)."
+  ]
+ },
+ {
+  "frame": 210,
+  "seconds": 14.0,
+  "label": "Tomato \u00b7 Leaf mold",
+  "confidence": 0.9023,
+  "severity_percent": 29.5,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 29% of the leaf (grade 4/5)."
+  ]
+ },
+ {
+  "frame": 225,
+  "seconds": 15.0,
+  "label": "Tomato \u00b7 Early blight",
+  "confidence": 0.8837,
+  "severity_percent": 25.1,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 25% of the leaf (grade 4/5)."
+  ]
+ },
+ {
+  "frame": 240,
+  "seconds": 16.0,
+  "label": "Tomato \u00b7 Early blight",
+  "confidence": 0.8958,
+  "severity_percent": 23.2,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 23% of the leaf (grade 3/5)."
+  ]
+ },
+ {
+  "frame": 255,
+  "seconds": 17.0,
+  "label": "Tomato \u00b7 Early blight",
+  "confidence": 0.896,
+  "severity_percent": 22.3,
+  "pests": 0,
+  "alerts": [
+   "Severe damage: about 22% of the leaf (grade 3/5)."
+  ]
+ }
+]

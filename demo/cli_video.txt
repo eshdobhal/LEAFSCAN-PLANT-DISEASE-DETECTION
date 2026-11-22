@@ -1,0 +1,2 @@
+18 frames analysed; timeline in demo\video_report\field_walk_SYNTHETIC_timeline.json
+exit code 2

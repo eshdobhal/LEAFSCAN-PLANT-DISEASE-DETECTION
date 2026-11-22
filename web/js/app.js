@@ -180,6 +180,7 @@
         el("p", {}, el("strong", {}, "The model isn't sure."), " Retake in daylight with a single leaf filling the frame.")) : null,
       c.is_background ? el("p", {}, "We couldn't find a leaf in this photo. Try again with one leaf filling most of the frame.") : null,
       el("p", { class: "hint" }, "Diagnosed on this device in " + (result.ms / 1000).toFixed(1) + " s (" + backend + ")."),
+      el("p", { class: "hint", "data-disclaimer": "" }, "An automated first opinion, not professional advice. Confirm with a local extension officer before treating."),
       el("div", { class: "cluster no-print" }, again, print));
 
     const bars = el("ol", { class: "bars" }, ...result.top3.map(([i, p], rank) =>
@@ -241,8 +242,14 @@
     } finally { button.removeAttribute("aria-busy"); }
   }));
 
+  // Leaving the page aborts the model download; that is not a failure worth reporting.
+  let leaving = false;
+  addEventListener("pagehide", () => { leaving = true; });
+  addEventListener("beforeunload", () => { leaving = true; });
+
   // Resolves to true when the models are ready, false if loading failed (the message is shown on the page).
   const ready = load().then(() => true, (error) => {
+    if (leaving) return false;
     console.error(error);
     status.dataset.state = "error";
     statusText.textContent = "The AI model couldn't load. Check your connection and reload the page.";

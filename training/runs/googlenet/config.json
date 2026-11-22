@@ -1,0 +1,11 @@
+{
+ "epochs": 8,
+ "batch": 32,
+ "lr": 0.0002,
+ "field_share": 0.3,
+ "workers": 6,
+ "name": "googlenet",
+ "arch": "googlenet",
+ "no_copy": true,
+ "size": 224
+}

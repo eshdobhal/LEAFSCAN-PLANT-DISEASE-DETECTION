@@ -1,0 +1,152 @@
+[
+ {
+  "epoch": 1,
+  "loss": 0.9433,
+  "val_mask_mAP": 0.2513
+ },
+ {
+  "epoch": 2,
+  "loss": 0.6527,
+  "val_mask_mAP": 0.2865
+ },
+ {
+  "epoch": 3,
+  "loss": 0.5549,
+  "val_mask_mAP": 0.3097
+ },
+ {
+  "epoch": 4,
+  "loss": 0.5052,
+  "val_mask_mAP": 0.2953
+ },
+ {
+  "epoch": 5,
+  "loss": 0.4704,
+  "val_mask_mAP": 0.2978
+ },
+ {
+  "epoch": 6,
+  "loss": 0.4221,
+  "val_mask_mAP": 0.2753
+ },
+ {
+  "epoch": 7,
+  "loss": 0.4072,
+  "val_mask_mAP": 0.3006
+ },
+ {
+  "epoch": 8,
+  "loss": 0.3913,
+  "val_mask_mAP": 0.2527
+ },
+ {
+  "epoch": 9,
+  "loss": 0.3464,
+  "val_mask_mAP": 0.2855
+ },
+ {
+  "epoch": 10,
+  "loss": 0.331,
+  "val_mask_mAP": 0.2717
+ },
+ {
+  "epoch": 11,
+  "loss": 0.3234,
+  "val_mask_mAP": 0.2515
+ },
+ {
+  "epoch": 12,
+  "loss": 0.3053,
+  "val_mask_mAP": 0.2558
+ },
+ {
+  "epoch": 13,
+  "loss": 0.2781,
+  "val_mask_mAP": 0.2451
+ },
+ {
+  "epoch": 14,
+  "loss": 0.2714,
+  "val_mask_mAP": 0.2628
+ },
+ {
+  "epoch": 15,
+  "loss": 0.2591,
+  "val_mask_mAP": 0.2254
+ },
+ {
+  "epoch": 16,
+  "loss": 0.2448,
+  "val_mask_mAP": 0.2615
+ },
+ {
+  "epoch": 17,
+  "loss": 0.2328,
+  "val_mask_mAP": 0.2764
+ },
+ {
+  "epoch": 18,
+  "loss": 0.2358,
+  "val_mask_mAP": 0.2579
+ },
+ {
+  "epoch": 19,
+  "loss": 0.2188,
+  "val_mask_mAP": 0.2608
+ },
+ {
+  "epoch": 20,
+  "loss": 0.2018,
+  "val_mask_mAP": 0.2481
+ },
+ {
+  "epoch": 21,
+  "loss": 0.2056,
+  "val_mask_mAP": 0.2512
+ },
+ {
+  "epoch": 22,
+  "loss": 0.1959,
+  "val_mask_mAP": 0.253
+ },
+ {
+  "epoch": 23,
+  "loss": 0.1949,
+  "val_mask_mAP": 0.256
+ },
+ {
+  "epoch": 24,
+  "loss": 0.1923,
+  "val_mask_mAP": 0.258
+ },
+ {
+  "epoch": 25,
+  "loss": 0.1854,
+  "val_mask_mAP": 0.2576
+ },
+ {
+  "epoch": 26,
+  "loss": 0.1828,
+  "val_mask_mAP": 0.2572
+ },
+ {
+  "epoch": 27,
+  "loss": 0.1839,
+  "val_mask_mAP": 0.2364
+ },
+ {
+  "epoch": 28,
+  "loss": 0.1818,
+  "val_mask_mAP": 0.2547
+ },
+ {
+  "epoch": 29,
+  "loss": 0.1826,
+  "val_mask_mAP": 0.2431
+ },
+ {
+  "epoch": 30,
+  "loss": 0.1839,
+  "val_mask_mAP": 0.2553
+ }
+]

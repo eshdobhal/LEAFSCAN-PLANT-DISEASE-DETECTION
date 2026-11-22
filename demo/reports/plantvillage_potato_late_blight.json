@@ -1,0 +1,65 @@
+{
+ "image": "plantvillage_potato_late_blight.jpg",
+ "classification": {
+  "label": "Potato \u00b7 Late blight",
+  "key": "Potato___Late_blight",
+  "is_healthy": false,
+  "is_background": false,
+  "confidence": 0.9033,
+  "top3": [
+   {
+    "label": "Potato \u00b7 Late blight",
+    "confidence": 0.9033
+   },
+   {
+    "label": "Tomato \u00b7 Septoria leaf spot",
+    "confidence": 0.0027
+   },
+   {
+    "label": "Tomato \u00b7 Healthy",
+    "confidence": 0.0027
+   }
+  ],
+  "low_confidence": false
+ },
+ "detections": [
+  {
+   "label": "Apple Scab Leaf",
+   "score": 0.42,
+   "box_xyxy": [
+    18.9,
+    12.3,
+    234.7,
+    234.7
+   ]
+  },
+  {
+   "label": "Apple Rust Leaf",
+   "score": 0.402,
+   "box_xyxy": [
+    17.5,
+    11.3,
+    234.8,
+    233.6
+   ]
+  }
+ ],
+ "pests": [],
+ "segmentation": {
+  "lesion_count": 0,
+  "severity_percent": 0.0,
+  "severity_grade_0_to_5": 0
+ },
+ "forecast": {},
+ "alerts": [],
+ "timings_ms": {
+  "classify": 248.5,
+  "detect": 406.5,
+  "segment": 596.2,
+  "total": 1251.2
+ },
+ "notes": [
+  "Pest detection skipped: the pest model was trained on tea only and mistakes disease spots on other crops for pests. Use crop='tea' (CLI: --crop tea) for tea photos.",
+  "Automated first opinion, not professional advice. Confirm with an extension officer."
+ ]
+}

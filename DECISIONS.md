@@ -372,3 +372,28 @@ way the "not sure" banner shows), and `tomato_yellow_leaf_curl_virus2.jpg` is pr
   `theme.js` 1.7 KB (all uncompressed).
 - **Lighthouse: not run** (no Node.js). To run it yourself: install Node LTS, start the app, then
   `npx lighthouse http://127.0.0.1:5000/ --form-factor=mobile --view`.
+
+## Surveillance system (Project 05)
+
+The brief asked for classification, damaged-tissue segmentation, pest detection and progression estimation,
+benchmarked across model families, with a full evaluation package. Decisions, each with its reason:
+
+| Decision | Reason |
+|---|---|
+| Acceptance tests (R1–R14) written before training (`docs/REQUIREMENTS.md`) | So the go/no-go cannot be tuned to the results; two tests (R6, R7) are reported as failed |
+| PlantDoc-corrected for disease detection, not the original PlantDoc boxes | The corrected release removes 12 train/test duplicates and fixes class names and EXIF orientation |
+| Tea dataset for pests, de-duplicated first | The only licensed, box-annotated field pest set found; 72% of its files were byte-identical copies, which would have inflated every metric |
+| A rejected candidate: a synthetic pest set | It contained kitchen pests, not crop pests |
+| RetinaNet-ResNet50-FPN shipped for detection | Brief names "YOLO or RetinaNet with ResNet"; RetinaNet is the most accurate at strict IoU on tea, is BSD-licensed, and passes R4 on PlantDoc |
+| YOLOv8s only as a benchmark | AGPL-3.0 conflicts with the redistributable-licence constraint, although it is 8× faster on a CPU |
+| Faster R-CNN stands for the R-CNN family | It is R-CNN and Fast R-CNN with the slow external proposals replaced by a learned network; training R-CNN itself (selective search, one CNN pass per region) would teach nothing new at 100× the cost |
+| DeepLabV3 for damaged tissue, Mask R-CNN as the instance benchmark | DeepLab beat FCN on every metric; Mask R-CNN gives true instance masks for the lesion-count question |
+| Severity from an excess-green leaf estimate | No leaf masks exist; the same estimate is applied to the truth and to predictions, so the comparison is fair |
+| Progression on simulated epidemics, with noise equal to the measured segmentation error | No public dataset photographs the same plants over a season; simulation shows the method, and the caveat travels with every forecast |
+| Forecaster predicts the change from today, not the level | Persistence is a strong baseline; predicting the change starts every model from it, and both RNN and LSTM end more than 50% below its error |
+| Pest detection only when the crop is declared as tea | Measured: 89% of photos of 13 other crops got a false pest alarm; the model learned "spots", not "pests" |
+| Classifier skipped for tea | It was never trained on tea and answered "Cherry, healthy 35%" on the demo photo |
+| Temperature scaling fitted on validation, checked on synthetic mis-calibration first | ECE must be fixed without touching the test set; the check proved the fitting code recovers T = 2.98 / 1.00 / 0.50 |
+| Demo video from openly licensed photos only | PlantDoc images are scraped from the web, some watermarked; the demo uses PlantVillage (CC0), LeafNet75 (Apache-2.0) and tea (CC BY 4.0) |
+| Synthetic scouting clip labelled SYNTHETIC in its file name, the video and every document | No openly licensed annotated field video exists; the label prevents it being mistaken for field evidence |
+| Disclaimer on every result (web page, browser version, API `notice`, CLI notes) | Requirement R13; previously only the About page carried it |

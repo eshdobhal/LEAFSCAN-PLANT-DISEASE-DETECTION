@@ -117,6 +117,9 @@ ERROR_TEXT = {
 }
 
 
+DISCLAIMER = "An automated first opinion, not professional advice. Confirm with a local extension officer before treating."
+
+
 def create_app(config_class=Config) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -278,6 +281,7 @@ def create_app(config_class=Config) -> Flask:
             top3=[{"label": catalog[i].key, "confidence": round(p, 4)} for i, p in result["top3"]],
             low_confidence=result["confidence"] < threshold,
             demo_mode=not predictor.model_loaded,
+            notice=DISCLAIMER,
         )
 
     @app.get("/healthz")

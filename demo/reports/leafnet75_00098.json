@@ -1,0 +1,57 @@
+{
+ "image": "leafnet75_00098.jpg",
+ "classification": {
+  "label": "Tomato \u00b7 Early blight",
+  "key": "Tomato___Early_blight",
+  "is_healthy": false,
+  "is_background": false,
+  "confidence": 0.9168,
+  "top3": [
+   {
+    "label": "Tomato \u00b7 Early blight",
+    "confidence": 0.9168
+   },
+   {
+    "label": "Potato \u00b7 Early blight",
+    "confidence": 0.0034
+   },
+   {
+    "label": "Tomato \u00b7 Bacterial spot",
+    "confidence": 0.0029
+   }
+  ],
+  "low_confidence": false
+ },
+ "detections": [
+  {
+   "label": "Tomato Septoria Leaf Spot",
+   "score": 0.439,
+   "box_xyxy": [
+    139.6,
+    111.4,
+    584.9,
+    597.6
+   ]
+  }
+ ],
+ "pests": [],
+ "segmentation": {
+  "lesion_count": 7,
+  "severity_percent": 16.9,
+  "severity_grade_0_to_5": 3
+ },
+ "forecast": {},
+ "alerts": [
+  "Severe damage: about 17% of the leaf (grade 3/5)."
+ ],
+ "timings_ms": {
+  "classify": 296.0,
+  "detect": 592.5,
+  "segment": 623.7,
+  "total": 1512.2
+ },
+ "notes": [
+  "Pest detection skipped: the pest model was trained on tea only and mistakes disease spots on other crops for pests. Use crop='tea' (CLI: --crop tea) for tea photos.",
+  "Automated first opinion, not professional advice. Confirm with an extension officer."
+ ]
+}

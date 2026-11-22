@@ -145,8 +145,6 @@ def process_memory_mb():
 def deployment():
     """CPU latency / size of every component, measured the same way (median of 10 after warm-up)."""
     rows = {}
-    for name, path in (("classifier: CAFormer ensemble", RUNS / "caformer_s18" / "test_metrics.json"),):
-        pass
     for f in sorted(SRUNS.glob("*/test_metrics.json")):
         m = json.loads(f.read_text())
         weights = f.parent / "best.pt"
@@ -160,12 +158,37 @@ def deployment():
     return rows
 
 
+@torch.inference_mode()
+def pest_out_of_domain(threshold=0.40):
+    """How often the tea-trained pest model reports a pest on photos that contain none (PlantDoc test, 13 other
+    crops), versus how often it finds the pest on tea test photos that have one. Motivates the crop="tea" gate."""
+    from torchvision.transforms import functional as F
+
+    from surveillance import detection
+    net, names = detection.load("tea", "retinanet", DEVICE)
+    pest_ids = {i + 1 for i, n in enumerate(names) if "(pest)" in n}
+
+    def has_pest(path):
+        out = net([F.to_tensor(Image.open(path).convert("RGB")).to(DEVICE)])[0]
+        return bool(((out["scores"] >= threshold) & torch.isin(out["labels"], torch.tensor(sorted(pest_ids), device=DEVICE))).any())
+
+    other = sorted((ROOT / "data" / "plantdoc_det" / "images" / "test").iterdir())
+    tea_dir = ROOT / "data" / "tea_pest" / "yolo"
+    tea_pest = [p for p in sorted((tea_dir / "images" / "test").iterdir())
+                if any(int(line.split()[0]) + 1 in pest_ids
+                       for line in (tea_dir / "labels" / "test" / (p.stem + ".txt")).read_text().splitlines() if line.strip())]
+    fp = sum(has_pest(p) for p in other)
+    tp = sum(has_pest(p) for p in tea_pest)
+    return {"threshold": threshold, "other_crops_photos": len(other), "other_crops_with_false_pest": fp,
+            "false_pest_rate_other_crops": round(fp / len(other), 4), "tea_photos_with_pest": len(tea_pest),
+            "tea_pest_photos_detected": tp, "pest_photo_recall_tea": round(tp / max(1, len(tea_pest)), 4)}
+
+
 def full_pipeline_profile():
     """End-to-end CLI pipeline on CPU: per-component latency and the process's peak memory."""
-    os.environ["CUDA_VISIBLE_DEVICES"] = ""
     from surveillance.pipeline import Surveillance
     before = process_memory_mb()
-    s = Surveillance(device="cpu")
+    s = Surveillance(device="cpu", crop="tea")  # crop="tea" so every component, pests included, is timed (worst case)
     after = process_memory_mb()
     runs = []
     for name in ("potato_early_blight.JPG", "tomato_bacterial_spot.JPG", "corn_common_rust.JPG", "tomato-mold.jpg"):
@@ -251,7 +274,11 @@ def main():
     out["segmentation"] = {d.name: json.loads((d / "test_metrics.json").read_text()) for d in sorted(SRUNS.iterdir())
                            if (d / "test_metrics.json").exists() and d.name.startswith("leafseg_")}
 
-    # 4. Deployment profile
+    # 4. Out-of-domain behaviour of the pest model
+    out["pest_out_of_domain"] = pest_out_of_domain()
+    print("pest model out of domain:", out["pest_out_of_domain"], flush=True)
+
+    # 5. Deployment profile
     out["deployment"] = deployment()
     out["pipeline_cpu_profile"] = full_pipeline_profile()
     (RESULTS / "evaluation.json").write_text(json.dumps(out, indent=1))
@@ -273,6 +300,13 @@ def write_summary(out):
     for name, m in out["detection"].items():
         lines.append(f"| {name} | {m['mAP']:.3f} | {m['mAP50']:.3f} | {m.get('pest_mAP') if m.get('pest_mAP') is not None else '-'} | "
                      f"{m.get('cpu_latency_ms')} | {m.get('parameters_M')} |")
+    po = out.get("pest_out_of_domain")
+    if po:
+        lines += ["", "## Pest model outside its training crop", "",
+                  f"Photos of 13 other crops (PlantDoc test, no tea pests): {po['false_pest_rate_other_crops']:.0%} get a false pest "
+                  f"box at score ≥ {po['threshold']} ({po['other_crops_with_false_pest']}/{po['other_crops_photos']}). "
+                  f"Tea test photos that contain a pest: {po['pest_photo_recall_tea']:.0%} detected "
+                  f"({po['tea_pest_photos_detected']}/{po['tea_photos_with_pest']}). Hence pest detection runs only for crop = tea."]
     lines += ["", "## Segmentation and instance analysis (LeafNet75 test)", ""]
     for name, m in out["segmentation"].items():
         lines.append(f"- **{name}**: " + ", ".join(f"{k} {v}" for k, v in m.items()))

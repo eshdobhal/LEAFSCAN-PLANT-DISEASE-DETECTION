@@ -26,6 +26,7 @@
       {% if c.is_background %}
       <p>We couldn't find a leaf in this photo. Try again with one leaf filling most of the frame.</p>
       {% endif %}
+      <p class="hint" data-disclaimer>An automated first opinion, not professional advice. Confirm with a local extension officer before treating.</p>
       <div class="cluster no-print">
         <a class="btn btn--primary" href="{{ url_for('diagnose') }}">{{ icon("refresh") }}Diagnose another leaf</a>
         <button class="btn btn--ghost js-only" type="button" data-print>Print / save as PDF</button>

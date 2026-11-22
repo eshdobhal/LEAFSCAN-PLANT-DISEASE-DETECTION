@@ -75,6 +75,7 @@ def main():
         page.click("[data-submit]")
         expect(page.locator("#result-title")).to_contain_text("Early blight", timeout=60000)
         expect(page.locator("[data-submit]")).to_be_enabled()  # loading state reset for the next photo
+        expect(page.locator("[data-disclaimer]")).to_contain_text("not professional advice")  # R13
         print("upload:", page.locator("#result-title").inner_text().replace("\n", " "))
 
         overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")

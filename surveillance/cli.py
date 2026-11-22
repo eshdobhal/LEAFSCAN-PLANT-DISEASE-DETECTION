@@ -1,6 +1,6 @@
 """Command-line interface of LeafScan Surveillance.
 
-    python -m surveillance.cli analyze PHOTO [PHOTO ...] [--out DIR] [--history CSV] [--only classify,segment]
+    python -m surveillance.cli analyze PHOTO [PHOTO ...] [--out DIR] [--history CSV] [--only classify,segment] [--crop tea]
     python -m surveillance.cli video VIDEO [--every N] [--out DIR]
     python -m surveillance.cli status
 
@@ -22,11 +22,13 @@ def main(argv=None):
     a.add_argument("--history", type=Path, help="CSV of past severity and weather, for the 7-day forecast")
     a.add_argument("--only", default="classify,detect,pests,segment,forecast", help="comma-separated components")
     a.add_argument("--device", default=None, help="cpu or cuda (default: cuda if available)")
+    a.add_argument("--crop", default=None, help="crop in the photos; pest detection runs only for --crop tea")
     v = sub.add_parser("video", help="analyse every Nth frame of a video")
     v.add_argument("video", type=Path)
     v.add_argument("--every", type=int, default=15)
     v.add_argument("--out", type=Path, default=Path("reports"))
     v.add_argument("--device", default=None)
+    v.add_argument("--crop", default=None)
     sub.add_parser("status", help="which components have trained weights")
     args = ap.parse_args(argv)
 
@@ -37,23 +39,24 @@ def main(argv=None):
         return 0
     args.out.mkdir(parents=True, exist_ok=True)
     if args.cmd == "analyze":
-        s = Surveillance(tuple(args.only.split(",")), device=args.device)
+        s = Surveillance(tuple(args.only.split(",")), device=args.device, crop=args.crop)
         any_alert = False
         for photo in args.photos:
             report, annotated = s.analyze(photo, history_csv=args.history, name=photo.name)
             (args.out / f"{photo.stem}.json").write_text(report.to_json(), encoding="utf-8")
             annotated.save(args.out / f"{photo.stem}_annotated.png")
             c = report.classification
-            print(f"{photo.name}: {c.get('label', '-')} ({c.get('confidence', 0):.0%})"
+            print(f"{photo.name}: " + (f"{c['label']} ({c['confidence']:.0%})" if c else "not classified")
                   + (f" | severity {report.segmentation['severity_percent']}%" if report.segmentation else "")
-                  + (f" | pests {len(report.pests)}" if "pests" in s.components else "")
+                  + (f" | pests {len(report.pests)}" if "pests" in s.components and s.crop == "tea" else "")
+                  + (f" | 7-day forecast max {max(report.forecast['severity_percent'])}%" if report.forecast else "")
                   + f" | {report.timings_ms.get('total')} ms")
             for alert in report.alerts:
                 print(f"  ! {alert}")
             any_alert |= bool(report.alerts)
         return 2 if any_alert else 0
     if args.cmd == "video":
-        s = Surveillance(device=args.device)
+        s = Surveillance(device=args.device, crop=args.crop)
         frames = args.out / f"{args.video.stem}_frames"
         frames.mkdir(parents=True, exist_ok=True)
         timeline = s.analyze_video(args.video, args.every, frames)

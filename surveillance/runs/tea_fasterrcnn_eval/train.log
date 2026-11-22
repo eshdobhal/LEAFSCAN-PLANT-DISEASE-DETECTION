@@ -1,0 +1,14 @@
+{
+ "mAP": 0.6944,
+ "mAP50": 0.9892,
+ "mAP75": 0.8245,
+ "mAR100": 0.7492,
+ "pest_mAP": 0.7233,
+ "pest_AP50": {
+  "red spider mite (pest)": 0.9718,
+  "tea mosquito bug (pest)": 0.9774
+ },
+ "cpu_latency_ms": 934.9,
+ "parameters_M": 43.3,
+ "test_images": 406
+}

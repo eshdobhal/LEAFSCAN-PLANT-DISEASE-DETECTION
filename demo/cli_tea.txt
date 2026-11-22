@@ -1,0 +1,3 @@
+tea_test_08048.jpg: not classified | severity 1.2% | pests 2 | 1307.6 ms
+  ! Possible pest damage: tea mosquito bug (pest). Note: the pest model was trained on tea leaves.
+exit code 2

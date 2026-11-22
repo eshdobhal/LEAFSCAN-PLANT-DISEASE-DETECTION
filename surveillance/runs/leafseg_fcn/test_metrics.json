@@ -1,0 +1,16 @@
+{
+ "IoU_lesion": 0.5354,
+ "Dice_lesion": 0.6974,
+ "pixel_accuracy": 0.9478,
+ "per_image_IoU_median": 0.6483,
+ "lesion_precision": 0.2286,
+ "lesion_recall": 0.3556,
+ "lesion_F1_at_IoU0.5": 0.2783,
+ "lesion_count_MAE": 3.08,
+ "severity_fraction_MAE": 0.0545,
+ "severity_grade_exact": 0.7159,
+ "severity_grade_within_1": 0.8636,
+ "cpu_latency_ms": 428.4,
+ "parameters_M": 35.3,
+ "test_images": 88
+}

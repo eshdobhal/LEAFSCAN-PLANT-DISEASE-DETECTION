@@ -24,6 +24,11 @@ confident it is, and tells you what to do next.
 
 *Runs entirely in your browser: your photo never leaves your device.*
 
+**New: LeafScan Surveillance (Project 05).** Diseased-leaf and pest **detection**, damaged-tissue
+**segmentation** with a severity grade, a 7-day **progression forecast**, a batch and video **CLI**, and a
+full evaluation package. See the [technical report](docs/TECHNICAL_REPORT.md),
+[model card](docs/MODEL_CARD.md) and [2-minute demo video](docs/demo/leafscan_demo.mp4).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="screenshots/home-desktop-dark.png">
   <img src="screenshots/home-desktop-light.png" alt="LeafScan home page" width="860">
@@ -94,6 +99,26 @@ All numbers are measured once on held-out photos the models never saw during tra
 - CPU latency: **190–360 ms** median per photo for the full ensemble (2 networks × 2 views), 70–140 ms
   with `ENSEMBLE=0` (same laptop, different power states; see [9.4](#94-latency-cpu-scriptsbenchmarkpy)).
 
+### Surveillance system (Project 05)
+
+`surveillance/` adds four more models around the classifier, and a command-line tool that runs them on photos
+or video (`python -m surveillance.cli analyze leaf.jpg`). All results below are from untouched test sets
+([technical report](docs/TECHNICAL_REPORT.md), [model card](docs/MODEL_CARD.md)).
+
+| Question | Model | Test result |
+|---|---|---|
+| Where are the diseased leaves? | RetinaNet + ResNet-50-FPN, PlantDoc (29 classes) | mAP@0.5 **0.489** (target 0.40) |
+| Is there pest damage? (tea) | RetinaNet + ResNet-50-FPN, tea field photos | AP@0.5 **0.96** red spider mite, **0.98** tea mosquito bug |
+| How much tissue is damaged? | DeepLabV3-ResNet-50 | lesion IoU 0.58; severity grade within ±1 for **87.5%** of photos |
+| Will it pass the action threshold? | LSTM on simulated epidemics | 7-day error **64% below** "tomorrow = today"; alert F1 0.74 |
+
+Benchmarked against ResNet-50 and GoogLeNet (classification), Faster R-CNN and YOLOv8s (detection),
+FCN and Mask R-CNN (segmentation, instances) and a vanilla RNN (forecasting). A NumPy-only
+[`fundamentals/`](fundamentals/) module builds tensors, an MLP with backpropagation, four optimisers and
+five classic learning rules from scratch, with ablations. **Two acceptance tests fail and are reported as
+such** (lesion IoU 0.58 < 0.60; lesion-count F1 0.29 < 0.50), and the pest model runs **only on tea**
+because it raises false pest alarms on 89% of photos of other crops.
+
 ## 3. Features
 
 | For users | For developers and operators |
@@ -103,7 +128,7 @@ All numbers are measured once on held-out photos the models never saw during tra
 | **Top-3 possibilities** with probability bars, and a **low-confidence warning** | Strict **Content-Security-Policy** with per-request nonce, security headers |
 | **What to do** steps (or growing tips for healthy plants) and a suggested product | In-memory upload validation (type, Pillow decode, 8 MB, 40 MP limit) |
 | **Try a sample**: four one-click photos, none used in training | Per-client **rate limiting** (HTTP 429), proxy-aware |
-| **Treatments** page with instant search, crop filter and type toggle | **65 automated tests**, 15 of them in a real Chromium browser; CI on every push |
+| **Treatments** page with instant search, crop filter and type toggle | **68 automated tests**, 15 of them in a real Chromium browser; CI on every push |
 | Light/dark theme, keyboard accessible, print stylesheet, **works without JavaScript** | Reproducible training, evaluation and figure scripts |
 | Private: photos are **processed in memory and never stored** | No CDNs, no front-end frameworks: Flask + Jinja, one CSS file, small vanilla JS |
 
@@ -170,7 +195,8 @@ $ curl -F "image=@test_images/potato_early_blight.JPG" http://127.0.0.1:5000/api
     {"label": "Tomato___Late_blight", "confidence": 0.0029},
     {"label": "Pepper,_bell___Bacterial_spot", "confidence": 0.0027}
   ],
-  "demo_mode": false
+  "demo_mode": false,
+  "notice": "An automated first opinion, not professional advice. Confirm with a local extension officer before treating."
 }
 ```
 
@@ -815,8 +841,8 @@ App name, author, upload limit and sample photos live in `Flask Deployed App/con
 pip install -r "Flask Deployed App\requirements-dev.txt"
 python -m playwright install chromium
 cd "Flask Deployed App"
-python -m pytest                                   # 50 tests (browser tests skipped)
-$env:E2E = "1"; python -m pytest; Remove-Item Env:E2E   # all 65, including 15 in Chromium
+python -m pytest                                   # 53 tests (browser tests skipped)
+$env:E2E = "1"; python -m pytest; Remove-Item Env:E2E   # all 68, including 15 in Chromium
 cd ..
 python scripts\check_html.py      # tag balance, duplicate ids, alt text, no inline styles
 python scripts\benchmark.py       # accuracy on test_images/ + median latency
@@ -825,11 +851,13 @@ python scripts\screenshots.py     # regenerates screenshots/ and checks for side
 
 | Suite | Tests | Covers |
 |---|---:|---|
-| `tests/test_app.py` | 46 | Every page, redirects, 5 real uploads with expected diagnoses, PNG modes, empty/missing/fake/renamed files, path-traversal names, 9 MB upload (413), API schema and errors, security headers and configurable framing, no third-party assets, samples, author credit, rate limiting |
+| `tests/test_app.py` | 49 | Every page, redirects, 5 real uploads with expected diagnoses, PNG modes, empty/missing/fake/renamed files, path-traversal names, 9 MB upload (413), API schema and errors, security headers and configurable framing, no third-party assets, samples, author credit, rate limiting, responsible use (disclaimer on every result, "not sure" warning, no photo written to disk) |
 | `tests/test_model.py` | 4 | Model selection (`auto`, ensemble on/off), top-3 output, preprocessing at 224 and 288 px |
 | `tests/test_e2e.py` | 15 | Real Chromium: upload → result, sample button, 4000 px PNG resized in the browser, camera capture (dialog centred, stream stopped), filters, theme persistence, phone menu, no-JavaScript upload, no overflow at 320/375/1440 px, skip link, no console/CSP errors, API |
+| `fundamentals/tests/` | 29 | Gradient checks of every NumPy layer against finite differences; neurons, optimisers, learning rules |
+| `surveillance/tests/` | 16 | Detection labels and augmentation, lesion instances and F1, severity grades, temperature scaling and ECE, convolution by hand, simulation, forecaster, CLI |
 
-GitHub Actions runs the 50 app and model tests with the real weights on every push
+GitHub Actions runs the 53 app and model tests with the real weights, and the 29 fundamentals tests, on every push
 ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)). The browser version is built and tested in
 Chromium before every deployment ([`.github/workflows/pages.yml`](.github/workflows/pages.yml));
 `python web/test_web.py _site --parity` also compares it with PyTorch on every field test photo.
@@ -925,6 +953,12 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 │   ├── tests/                      test_app.py, test_model.py, test_e2e.py
 │   ├── wsgi.py, Procfile           production entry points
 │   └── requirements*.txt
+├── fundamentals/                   NumPy-only tensors, MLP + backprop, optimisers, learning rules, ablations
+├── surveillance/                   detection, segmentation, progression, generative, pipeline, CLI, evaluation
+│   ├── results/                    figures, metrics and EVALUATION_SUMMARY.md
+│   └── runs/                       per-model logs and test metrics (weights git-ignored)
+├── demo/                           scripts and real CLI outputs behind the demo video
+├── docs/                           requirements, dataset card, model card, technical report, user guide, demo video
 ├── training/                       data preparation, training, comparison, evaluation, figures
 │   └── runs/                       training histories, test metrics, logs (weights git-ignored)
 ├── scripts/                        benchmark, screenshots, HTML checks, asset generation
@@ -936,6 +970,7 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 ├── Model/                          the original CNN training notebook
 ├── DECISIONS.md                    every design decision and its reason
 ├── CODE_WALKTHROUGH.md             file-by-file explanation with line numbers
+├── requirements-research.txt       pinned research and training environment
 └── THIRD_PARTY_NOTICES.md          datasets, libraries and assets used
 ```
 
@@ -961,6 +996,12 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 
 | Document | Contents |
 |---|---|
+| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) | Project 05 report: methods, every result, error analysis, go/no-go against the 14 acceptance tests |
+| [docs/MODEL_CARD.md](docs/MODEL_CARD.md) | Every model: intended use, measured out-of-scope behaviour, performance, training |
+| [docs/DATASET_CARD.md](docs/DATASET_CARD.md) | Datasets, licences, de-duplication, leakage-safe splits, biases |
+| [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | Use case, stakeholders, acceptance tests, constraints, brief → evidence map |
+| [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | Using the browser version, the web app and the surveillance CLI |
+| [docs/demo/leafscan_demo.mp4](docs/demo/leafscan_demo.mp4) | Two-minute demo video |
 | [DECISIONS.md](DECISIONS.md) | Every design decision with its reason, full training tables and per-class results |
 | [CODE_WALKTHROUGH.md](CODE_WALKTHROUGH.md) | File-by-file explanation and quick answers with exact line numbers |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | Datasets, model weights, libraries and assets used, with their licences |

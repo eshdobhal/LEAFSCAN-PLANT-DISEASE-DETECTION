@@ -1,0 +1,10 @@
+{
+ "action": "train",
+ "data": "plantdoc",
+ "model": "fasterrcnn",
+ "epochs": 16,
+ "batch": 4,
+ "lr": 0.01,
+ "workers": 4,
+ "weights": "yolov8s.pt"
+}

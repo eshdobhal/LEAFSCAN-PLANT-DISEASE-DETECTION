@@ -12,6 +12,7 @@ Data: LeafNet75 in-the-wild leaf photos with binary lesion masks (data/leafseg, 
 - Severity: share of the leaf that is damaged, graded 0-5 (see SEVERITY_BINS), compared with the truth.
 """
 import argparse
+import contextlib
 import json
 import random
 import time
@@ -69,10 +70,14 @@ class LesionDataset(Dataset):
 
 def build_semantic(model, pretrained=True):
     import torchvision.models.segmentation as seg
+    # aux_loss=True always: training uses the auxiliary head, so the saved weights include it and a model
+    # rebuilt without pretrained weights must have it too (torchvision leaves it out by default then).
     if model == "deeplab":
-        net = seg.deeplabv3_resnet50(weights=seg.DeepLabV3_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1 if pretrained else None)
+        net = seg.deeplabv3_resnet50(weights=seg.DeepLabV3_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1 if pretrained else None,
+                                     aux_loss=True)
     elif model == "fcn":
-        net = seg.fcn_resnet50(weights=seg.FCN_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1 if pretrained else None)
+        net = seg.fcn_resnet50(weights=seg.FCN_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1 if pretrained else None,
+                               aux_loss=True)
     else:
         raise ValueError(model)
     net.classifier[-1] = nn.Conv2d(net.classifier[-1].in_channels, 2, 1)  # background, lesion
@@ -159,8 +164,10 @@ def train_semantic(args):
 @torch.inference_mode()
 def predict_masks(net, loader, device):
     net.eval()
+    # Mixed precision only on the GPU (on a CPU-only run, even a disabled bf16 autocast probes CUDA and fails).
+    amp = torch.autocast("cuda", dtype=torch.bfloat16) if device.type == "cuda" else contextlib.nullcontext()
     for x, m in loader:
-        with torch.autocast(device.type, dtype=torch.bfloat16, enabled=device.type == "cuda"):
+        with amp:
             p = net(x.to(device))["out"].float().argmax(1).cpu()
         yield p.numpy(), m.numpy()
 

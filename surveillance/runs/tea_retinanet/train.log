@@ -1,0 +1,22 @@
+C:\Users\Esh\Downloads\Plant-Disease-Detection-main\Plant-Disease-Detection-main\surveillance\detection.py:187: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:837.)
+  losses.append(float(loss))
+C:\Users\Esh\Downloads\Plant-Disease-Detection-main\Plant-Disease-Detection-main\.venv-train\Lib\site-packages\torchmetrics\utilities\prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+{"epoch": 1, "loss": 0.6252, "val_mAP": 0.3416, "val_mAP50": 0.5739, "minutes": 2.49}
+{"epoch": 2, "loss": 0.3851, "val_mAP": 0.4826, "val_mAP50": 0.7583, "minutes": 2.25}
+{"epoch": 3, "loss": 0.2996, "val_mAP": 0.6214, "val_mAP50": 0.9129, "minutes": 2.24}
+{"epoch": 4, "loss": 0.2531, "val_mAP": 0.5756, "val_mAP50": 0.8532, "minutes": 2.25}
+{"epoch": 5, "loss": 0.2284, "val_mAP": 0.6488, "val_mAP50": 0.9601, "minutes": 2.24}
+{"epoch": 6, "loss": 0.2065, "val_mAP": 0.6621, "val_mAP50": 0.9551, "minutes": 2.24}
+{"epoch": 7, "loss": 0.1805, "val_mAP": 0.6589, "val_mAP50": 0.959, "minutes": 2.24}
+{"epoch": 8, "loss": 0.1649, "val_mAP": 0.6647, "val_mAP50": 0.958, "minutes": 2.24}
+{"epoch": 9, "loss": 0.1453, "val_mAP": 0.6827, "val_mAP50": 0.9677, "minutes": 2.24}
+{"epoch": 10, "loss": 0.1323, "val_mAP": 0.6707, "val_mAP50": 0.9665, "minutes": 2.24}
+{"epoch": 11, "loss": 0.1185, "val_mAP": 0.6918, "val_mAP50": 0.9681, "minutes": 2.24}
+{"epoch": 12, "loss": 0.1081, "val_mAP": 0.6813, "val_mAP50": 0.9704, "minutes": 2.24}
+{"epoch": 13, "loss": 0.0986, "val_mAP": 0.6989, "val_mAP50": 0.9699, "minutes": 2.24}
+{"epoch": 14, "loss": 0.0924, "val_mAP": 0.701, "val_mAP50": 0.9692, "minutes": 2.24}
+{"epoch": 15, "loss": 0.0893, "val_mAP": 0.6999, "val_mAP50": 0.9703, "minutes": 2.24}
+{"epoch": 16, "loss": 0.0877, "val_mAP": 0.6985, "val_mAP50": 0.9693, "minutes": 2.24}
+best val mAP 0.7010

@@ -1,0 +1,3 @@
+leafnet75_00036.jpg: Tomato · Bacterial spot (91%) | severity 4.8% | 7-day forecast max 5.7% | 1403.7 ms
+  ! Forecast: severity likely to pass 5% within 7 days.
+exit code 2

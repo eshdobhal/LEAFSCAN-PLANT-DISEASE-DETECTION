@@ -1,0 +1,8 @@
+{
+ "mask_mAP": 0.2504,
+ "mask_mAP50": 0.5764,
+ "box_mAP": 0.2029,
+ "box_mAP50": 0.4404,
+ "cpu_latency_ms": 777.7,
+ "parameters_M": 45.9
+}

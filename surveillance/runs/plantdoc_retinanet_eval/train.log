@@ -1,0 +1,11 @@
+C:\Users\Esh\Downloads\Plant-Disease-Detection-main\Plant-Disease-Detection-main\.venv-train\Lib\site-packages\torchmetrics\utilities\prints.py:43: UserWarning: Encountered more than 100 detections in a single image. This means that certain detections with the lowest scores will be ignored, that may have an undesirable impact on performance. Please consider adjusting the `max_detection_threshold` to suit your use case. To disable this warning, set attribute class `warn_on_many_detections=False`, after initializing the metric.
+  warnings.warn(*args, **kwargs)
+{
+ "mAP": 0.3756,
+ "mAP50": 0.489,
+ "mAP75": 0.4361,
+ "mAR100": 0.7697,
+ "cpu_latency_ms": 457.8,
+ "parameters_M": 36.9,
+ "test_images": 236
+}

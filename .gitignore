@@ -23,3 +23,6 @@ training/runs/**/*.pt
 # Browser version: build output and exported ONNX models (built by .github/workflows/pages.yml)
 _site/
 *.onnx
+
+# Demo: the raw screen recording is re-made by demo/record_browser.py (the assembled video is kept)
+demo/browser/*.webm

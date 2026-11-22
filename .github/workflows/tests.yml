@@ -31,3 +31,20 @@ jobs:
         env:
           REQUIRE_MODEL: "1"  # fail loudly if the weights are missing instead of testing demo mode
         run: python -m pytest -q
+
+  fundamentals:
+    # The NumPy-only fundamentals module (tensors, MLP with backprop, optimisers, learning rules).
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install NumPy and pytest
+        run: pip install numpy==2.5.4 pytest==8.4.2
+
+      - name: Run the fundamentals tests (gradient checks and unit tests)
+        run: python -m pytest fundamentals/tests -q
