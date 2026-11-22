@@ -117,6 +117,12 @@ All numbers are measured once on held-out photos the models never saw during tra
 | **Real-world web photo** (yellow leaf curl virus, 90% confident) | **Low confidence**: the app warns instead of over-claiming |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/result-sample-tomato-leaf-curl-dark.png"><img src="screenshots/result-sample-tomato-leaf-curl-light.png" alt="Result page: tomato yellow leaf curl virus on a field photo"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/result-low-confidence-dark.png"><img src="screenshots/result-low-confidence-light.png" alt="Result page with the model isn't sure warning"></picture> |
 
+### Live browser version (GitHub Pages)
+
+| The page: the model loads once, then runs on the device | Result, computed in the browser |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/web-home-desktop-dark.png"><img src="screenshots/web-home-desktop-light.png" alt="LeafScan browser version: diagnose page with the model ready"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/web-result-desktop-dark.png"><img src="screenshots/web-result-desktop-light.png" alt="LeafScan browser version: diagnosis result"></picture> |
+
 ### Diagnose, treatments and about
 
 | Diagnose (upload, camera, samples) | Photo selected, ready to submit |
