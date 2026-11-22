@@ -20,6 +20,10 @@ confident it is, and tells you what to do next.
 
 **Author: Esh Dobhal**
 
+### [▶ Try it live: eshdobhal.github.io/LEAFSCAN-PLANT-DISEASE-DETECTION/](https://eshdobhal.github.io/LEAFSCAN-PLANT-DISEASE-DETECTION/)
+
+*Runs entirely in your browser: your photo never leaves your device.*
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="screenshots/home-desktop-dark.png">
   <img src="screenshots/home-desktop-light.png" alt="LeafScan home page" width="860">
@@ -818,16 +822,50 @@ python scripts\screenshots.py     # regenerates screenshots/ and checks for side
 | `tests/test_e2e.py` | 15 | Real Chromium: upload → result, sample button, 4000 px PNG resized in the browser, camera capture (dialog centred, stream stopped), filters, theme persistence, phone menu, no-JavaScript upload, no overflow at 320/375/1440 px, skip link, no console/CSP errors, API |
 
 GitHub Actions runs the 50 app and model tests with the real weights on every push
-([`.github/workflows/tests.yml`](.github/workflows/tests.yml)).
+([`.github/workflows/tests.yml`](.github/workflows/tests.yml)). The browser version is built and tested in
+Chromium before every deployment ([`.github/workflows/pages.yml`](.github/workflows/pages.yml));
+`python web/test_web.py _site --parity` also compares it with PyTorch on every field test photo.
 
 ## 14. Deployment
 
-**Hugging Face Spaces (free, recommended).** The free CPU tier (2 vCPU, 16 GB RAM, HTTPS) fits both
-models. A Space needs only the two files in [`deploy/huggingface/`](deploy/huggingface): the `Dockerfile`
-clones a tagged release of this repository (weights included), installs CPU-only PyTorch and starts
-gunicorn on port 7860 with `REQUIRE_MODEL=1`, `TRUST_PROXY=1` and `FRAME_ANCESTORS=https://huggingface.co`.
-Create a Docker Space, add that `Dockerfile`, and it builds automatically. Free Spaces sleep after 48 hours
-without visitors and wake on the next visit (about a minute).
+### Live: browser version on GitHub Pages (free)
+
+**https://eshdobhal.github.io/LEAFSCAN-PLANT-DISEASE-DETECTION/**
+
+The live demo is a static page that runs both models **in the visitor's browser** with
+[ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/): WebGPU where available (about 0.2 s per
+photo on a laptop GPU), WebAssembly everywhere else (about 3 s). There is no server, so it is free, never
+sleeps, scales to any number of visitors, and photos never leave the device.
+
+```mermaid
+flowchart LR
+    PUSH["git push to main"] --> CI["GitHub Actions: pages.yml"]
+    CI --> EXP["export_onnx.py<br/>.pt → ONNX (fp16 weights)"]
+    EXP --> BUILD["build_site.py<br/>page + app CSS/JS + catalog.json"]
+    BUILD --> TEST["test_web.py<br/>Chromium smoke test"]
+    TEST --> PAGES[("GitHub Pages")]
+    PAGES -- "HTML, JS, 2 × 47 MB models<br/>(downloaded once, cached)" --> BR["Visitor's browser"]
+    BR --> ORT["ONNX Runtime Web<br/>WebGPU or WebAssembly"]
+    ORT --> RES["Diagnosis on the device"]
+```
+
+| Check | Result |
+|---|---|
+| ONNX vs PyTorch, same input (225 field photos) | Same top-1 on 225/225; largest probability difference 0.000006 |
+| Browser page vs server, end to end (225 field photos) | Same diagnosis on 219/225 (97.3%); the rest differ only through the browser's image resizing |
+| Field accuracy, browser vs server | 72.0% vs 71.1% (the same within noise) |
+
+Trade-offs: the first visit downloads about 93 MB (cached afterwards), and there is no JSON API or
+server-side rate limit (none is needed: each visitor uses their own device). Files: [`web/`](web) and
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+
+### Running the full Flask app on a server
+
+Hugging Face Spaces: as of November 2026, Gradio and Docker Spaces need a PRO subscription (only static
+Spaces are free). With PRO, the files in [`deploy/huggingface/`](deploy/huggingface) deploy the full app:
+either the `Dockerfile`, or `app.py` + `requirements.txt` in a Gradio Space. Both download a tagged release
+of this repository and serve the Flask app on port 7860 with `REQUIRE_MODEL=1`, `TRUST_PROXY=1` and
+`FRAME_ANCESTORS=https://huggingface.co`.
 
 **Render / Railway (Linux).** Root directory `Flask Deployed App`, build command
 `pip install -r requirements.txt`, start command from the `Procfile`:
@@ -881,7 +919,8 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 │   └── runs/                       training histories, test metrics, logs (weights git-ignored)
 ├── scripts/                        benchmark, screenshots, HTML checks, asset generation
 ├── docs/images/                    performance figures (light and dark)
-├── deploy/huggingface/             Dockerfile and Space settings for Hugging Face Spaces
+├── web/                            browser version: page, ONNX export, site build and browser test
+├── deploy/huggingface/             files for running the Flask app on Hugging Face Spaces
 ├── screenshots/                    37 app screenshots
 ├── test_images/                    43 sample leaf photos for the benchmark
 ├── Model/                          the original CNN training notebook

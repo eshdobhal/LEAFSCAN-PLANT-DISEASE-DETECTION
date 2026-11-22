@@ -44,7 +44,7 @@
     previewUrl = URL.createObjectURL(file);
     previewImg.src = previewUrl;
     $("[data-preview-name]").textContent = file.name;
-    $("[data-preview-size]").textContent = formatSize(file.size) + " · ready to upload";
+    $("[data-preview-size]").textContent = formatSize(file.size) + " · ready";
     preview.hidden = false;
     submitBtn.disabled = false;
   }

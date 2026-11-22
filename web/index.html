@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LeafScan · Leaf disease diagnosis in your browser</title>
+  <meta name="description" content="Photograph one leaf: LeafScan names the most likely of 26 diseases across 14 crops. The AI model runs entirely in your browser; your photo never leaves your device.">
+  <meta name="author" content="Esh Dobhal">
+  <meta name="theme-color" content="#1F5135">
+  <!-- Static site, so the security policy is a meta tag. 'wasm-unsafe-eval' lets ONNX Runtime run
+       WebAssembly; cdn.jsdelivr.net serves the pinned ONNX Runtime Web files. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="js/early.js"></script>
+  <link rel="preload" href="fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/web.css">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LeafScan · Leaf disease diagnosis in your browser">
+  <meta property="og:description" content="Photograph a leaf, get a diagnosis and care steps. Runs on your device.">
+  <meta property="og:image" content="img/og-image.png">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="logo" href="./">
+        <img src="img/favicon.svg" alt="" width="28" height="28">
+        <span>LeafScan</span>
+      </a>
+      <button class="menu-toggle js-only" type="button" aria-expanded="false" aria-controls="site-nav">
+        <svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#menu"></use></svg><span>Menu</span>
+      </button>
+      <nav id="site-nav" class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="#diagnose">Diagnose</a></li>
+          <li><a href="#about">How it works</a></li>
+          <li><a href="https://github.com/eshdobhal/LEAFSCAN-PLANT-DISEASE-DETECTION" rel="noopener noreferrer">Source code</a></li>
+        </ul>
+      </nav>
+      <button class="theme-toggle js-only" type="button" aria-label="Theme: system" title="Switch colour theme">
+        <svg class="icon icon--light" aria-hidden="true" focusable="false"><use href="icons.svg#sun"></use></svg><svg class="icon icon--dark" aria-hidden="true" focusable="false"><use href="icons.svg#moon"></use></svg><svg class="icon icon--system" aria-hidden="true" focusable="false"><use href="icons.svg#monitor"></use></svg>
+      </button>
+    </div>
+  </header>
+
+  <noscript>
+    <div class="demo-banner" role="note"><div class="container">
+      This browser version needs JavaScript: the AI model runs on your device.
+    </div></div>
+  </noscript>
+
+  <main id="main">
+    <div class="container section diagnose" id="diagnose">
+      <div>
+        <p class="eyebrow">Leaf disease diagnosis in seconds</p>
+        <h1>Diagnose a leaf</h1>
+        <p class="lead">Photograph one leaf. LeafScan names the most likely of 26 diseases across 14 crops and
+          tells you what to do. <strong>The AI runs in your browser: your photo never leaves your device.</strong></p>
+
+        <div class="card model-status" role="status" aria-live="polite" data-model-status>
+          <p class="model-status__text" data-model-text>Loading the AI model…</p>
+          <progress class="model-status__bar" max="1" value="0" data-model-progress></progress>
+          <p class="hint" data-model-hint>About 93 MB, downloaded once. Later visits start instantly.</p>
+        </div>
+
+        <form class="card upload" data-upload-form novalidate>
+          <div class="dropzone" data-dropzone>
+            <span class="dropzone__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#upload"></use></svg></span>
+            <p class="dropzone__title">Drag a photo here, paste it, or</p>
+            <div class="cluster cluster--center">
+              <input class="file-input" id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp"
+                     aria-describedby="file-hint upload-error">
+              <label class="btn btn--primary" for="image"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#upload"></use></svg>Choose photo</label>
+              <button class="btn btn--ghost" type="button" data-camera-open hidden><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#camera"></use></svg>Use camera</button>
+            </div>
+            <p class="hint" id="file-hint">JPG, PNG or WebP, up to 8 MB.</p>
+          </div>
+
+          <div class="preview" data-preview hidden>
+            <img class="preview__img" data-preview-img alt="Selected leaf photo" width="160" height="160">
+            <div class="preview__meta">
+              <p class="preview__name" data-preview-name></p>
+              <p class="hint" data-preview-size></p>
+              <button class="btn btn--ghost btn--sm" type="button" data-remove><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#x"></use></svg>Remove</button>
+            </div>
+          </div>
+
+          <p class="form-error" id="upload-error" role="alert" data-error></p>
+
+          <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>
+            <span class="spinner" aria-hidden="true"></span>
+            <span data-submit-label>Diagnose leaf</span>
+          </button>
+        </form>
+
+        <section class="samples" aria-labelledby="samples-title">
+          <h2 id="samples-title" class="h3">No photo handy? Try a sample</h2>
+          <div class="samples__grid">
+            <button class="sample" type="button" data-sample="potato-early-blight"><img src="img/samples/potato-early-blight.jpg" alt="" width="112" height="112" loading="lazy"><span>Potato leaf</span></button>
+            <button class="sample" type="button" data-sample="peach-bacterial-spot"><img src="img/samples/peach-bacterial-spot.jpg" alt="" width="112" height="112" loading="lazy"><span>Peach leaf</span></button>
+            <button class="sample" type="button" data-sample="tomato-healthy"><img src="img/samples/tomato-healthy.jpg" alt="" width="112" height="112" loading="lazy"><span>Tomato leaf</span></button>
+            <button class="sample" type="button" data-sample="tomato-leaf-curl"><img src="img/samples/tomato-leaf-curl.jpg" alt="" width="112" height="112" loading="lazy"><span>Tomato plant</span></button>
+          </div>
+          <p class="hint">None of these photos were used to train the model.</p>
+        </section>
+      </div>
+
+      <aside class="card tips" aria-labelledby="tips-title">
+        <h2 id="tips-title" class="h3"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#sun"></use></svg>Tips for a good photo</h2>
+        <ul class="checklist">
+          <li>One leaf at a time</li>
+          <li>Fill most of the frame with the leaf</li>
+          <li>Daylight, but not harsh direct sun</li>
+          <li>Plain background, such as your palm or a sheet of paper</li>
+          <li>Hold steady so the leaf is in focus</li>
+        </ul>
+        <p class="hint">Your photo is analysed on this device and never uploaded.</p>
+      </aside>
+    </div>
+
+    <!-- Filled in by app.js after a diagnosis. -->
+    <div class="container section result" id="result" data-result hidden tabindex="-1"></div>
+
+    <section class="section about-web" id="about" aria-labelledby="about-title">
+      <div class="container prose">
+        <h2 id="about-title">How it works</h2>
+        <p>LeafScan uses a <strong>hybrid CNN-Transformer</strong> (CAFormer-S18): convolution layers read local
+          texture such as spots and rings, and self-attention layers relate distant parts of the leaf. Two copies,
+          trained on 224 px and 288 px images, each look at your photo and its mirror image; the four answers are
+          averaged. It was pre-trained on ImageNet-22k and fine-tuned on PlantVillage lab photos and PlantDoc
+          field photos.</p>
+        <p>This page runs the model with <strong>ONNX Runtime Web</strong> (WebGPU when your browser supports it,
+          otherwise WebAssembly). The models are identical to the server's; only the browser's image resizing differs
+          slightly. On 225 real field photos the two versions gave the same diagnosis for 219 (97%), and both
+          were right about as often (72.0% here, 71.1% on the server).</p>
+        <h3>How accurate is it?</h3>
+        <ul>
+          <li><strong>Lab photos</strong> (one leaf, plain background, 10,937 photos): <strong>99.6%</strong> correct.</li>
+          <li><strong>Real field photos</strong> (gardens and farms, 225 photos): <strong>71%</strong> correct. When
+            it is at least 80% sure it is right 84% of the time, so it tells you when it isn't sure.</li>
+        </ul>
+        <h3>Limitations</h3>
+        <ul>
+          <li>It only knows 38 leaf conditions; anything else is reported as the closest one.</li>
+          <li>One leaf per photo. It can't see roots, stems, fruit, soil or weather.</li>
+          <li>Product suggestions come from the project's data and haven't been independently checked.</li>
+        </ul>
+        <div class="banner banner--info">
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#info"></use></svg>
+          <p><strong>Disclaimer.</strong> LeafScan gives an automated first opinion, not professional advice. Before
+            spraying or removing plants, confirm the diagnosis with a local agricultural extension officer.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <div>
+        <p class="logo logo--footer">LeafScan</p>
+        <p class="muted">Leaf disease diagnosis in seconds.</p>
+      </div>
+      <p class="site-footer__disclaimer">
+        LeafScan gives an automated first opinion, not a professional diagnosis.
+        Confirm serious problems with a local agricultural extension officer before treating crops.
+      </p>
+      <p class="site-footer__credit">
+        Designed and built by Esh Dobhal · © 2026 · MIT License ·
+        <a href="https://github.com/eshdobhal/LEAFSCAN-PLANT-DISEASE-DETECTION" rel="noopener noreferrer">Source code</a>
+      </p>
+    </div>
+  </footer>
+
+  <dialog class="camera" data-camera aria-labelledby="camera-title">
+    <div class="camera__head">
+      <h2 id="camera-title" class="h3">Take a photo</h2>
+      <button class="icon-btn" type="button" data-camera-close aria-label="Close camera"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#x"></use></svg></button>
+    </div>
+    <div class="camera__stage">
+      <video data-camera-video playsinline muted></video>
+      <canvas data-camera-canvas hidden></canvas>
+    </div>
+    <p class="camera__status" role="status" data-camera-status></p>
+    <div class="cluster cluster--center">
+      <button class="btn btn--primary" type="button" data-camera-capture><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#camera"></use></svg>Capture</button>
+      <button class="btn btn--ghost" type="button" data-camera-retake hidden><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#refresh"></use></svg>Retake</button>
+      <button class="btn btn--primary" type="button" data-camera-use hidden><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#check"></use></svg>Use photo</button>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/diagnose.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

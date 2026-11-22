@@ -1,0 +1,62 @@
+name: Deploy browser version to GitHub Pages
+
+# Builds the static LeafScan site (models run in the visitor's browser) and publishes it on GitHub Pages.
+# The ONNX models are exported from the committed .pt weights here, so they are never stored in git.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "Flask Deployed App/static/**"
+      - "Flask Deployed App/*.py"
+      - "Flask Deployed App/*.csv"
+      - "Flask Deployed App/*.pt"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install export and test tools (CPU-only PyTorch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install timm==1.0.20 huggingface_hub==0.36.2 onnx==1.19.1 Flask==3.1.2 Pillow==11.3.0 playwright==1.55.0
+          python -m playwright install --with-deps chromium
+
+      - name: Build the site (exports both models to ONNX)
+        run: python web/build_site.py _site
+
+      - name: Test the built site in Chromium
+        run: python web/test_web.py _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

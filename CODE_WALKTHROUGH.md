@@ -172,6 +172,26 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
   `runs/ensemble/test_predictions.npz`) and draws the README charts in light and dark versions into
   `docs/images/`: training curves, model comparison, per-class field recall and the confusion matrix.
 
+## Browser version (`web/`)
+
+- `export_onnx.py`: rebuilds each CAFormer-S18 from its `.pt` file with timm's fused attention switched
+  off (plain matmul + softmax, supported by every ONNX Runtime Web backend), exports to ONNX with a dynamic
+  batch size, then `weights_to_fp16()` stores the weights as float16 with a `Cast` back to float32 in
+  front of each (half the size, same float32 maths). `--check N` compares with PyTorch on N photos.
+- `build_site.py`: copies `index.html`, `js/app.js`, `js/early.js`, `css/web.css` from `web/` and the
+  stylesheet, icons, fonts, images, `diagnose.js` and `theme.js` from the Flask app (one design, two
+  versions), writes `catalog.json` from `catalog.py`, and exports the models into `models/`.
+- `js/app.js`: `fetchModel()` downloads a model with a progress bar and keeps it in Cache Storage;
+  `createSession()` tries WebGPU, then WebAssembly; `toTensor()` does the server's preprocessing on a
+  canvas (resize so the short side is size × 256/224, centre crop, ImageNet normalisation, plus the mirror
+  image); `diagnoseBitmap()` averages 2 models × 2 views like `Predictor.predict`; `renderResult()` builds
+  the result with `textContent` only (no HTML from data). The form's submit is handled in the page, so
+  nothing is uploaded.
+- `js/early.js`: the inline theme script of `base.html`, as a file (a static page has no CSP nonce).
+- `test_web.py`: serves the built site under the GitHub Pages sub-path and checks it in Chromium (models
+  load, sample, upload, no console/CSP errors, no overflow); `--parity` runs all 225 field test photos
+  through the page and compares with PyTorch.
+
 ## Tests and scripts
 
 - `tests/test_model.py`: `MODEL_KIND=auto` fallback, ensemble only when the 288 px file exists and

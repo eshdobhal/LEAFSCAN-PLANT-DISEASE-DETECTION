@@ -1,0 +1,15 @@
+/* Extra styles for the browser-only version (web/). Everything else comes from the app's app.css. */
+.model-status { display: grid; gap: var(--s-2); margin-bottom: var(--s-5); }
+.model-status[data-state="ready"] { border-color: var(--ok); background: var(--ok-tint); }
+.model-status[data-state="error"] { border-color: var(--bad); background: var(--bad-tint); }
+.model-status__text { font-weight: 600; }
+.model-status__bar { width: 100%; height: 0.5rem; appearance: none; border: 0; border-radius: var(--radius-pill); background: var(--surface-2); overflow: hidden; }
+.model-status__bar::-webkit-progress-bar { background: var(--surface-2); }
+.model-status__bar::-webkit-progress-value { background: var(--brand); border-radius: var(--radius-pill); }
+.model-status__bar::-moz-progress-bar { background: var(--brand); border-radius: var(--radius-pill); }
+.model-status[data-state="ready"] .model-status__bar { display: none; }
+.about-web { border-top: 1px solid var(--line); }
+.about-web .prose { max-width: 46rem; }
+.result:focus { outline: none; }
+/* The verdict is an h2 here (the page already has its h1) but should look like the server's h1. */
+.result .verdict__title { font-size: var(--step-4); }

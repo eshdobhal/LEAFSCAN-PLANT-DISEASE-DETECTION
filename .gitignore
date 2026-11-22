@@ -19,3 +19,7 @@ training/runs/**/*.pt
 # The trained hybrids ship with the app (49 MB each: 224 px and 288 px)
 !Flask Deployed App/leafscan_hybrid.pt
 !Flask Deployed App/leafscan_hybrid_288.pt
+
+# Browser version: build output and exported ONNX models (built by .github/workflows/pages.yml)
+_site/
+*.onnx

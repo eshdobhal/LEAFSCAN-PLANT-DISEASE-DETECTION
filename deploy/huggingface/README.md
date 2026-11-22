@@ -11,6 +11,11 @@ short_description: Leaf disease diagnosis from one photo
 
 # LeafScan on Hugging Face Spaces
 
+> **Note (November 2026):** Hugging Face now requires a PRO subscription for Docker and Gradio
+> Spaces; only static Spaces are free. The free live demo is the browser version on GitHub Pages
+> (`web/`). These files are for running the full Flask app on Spaces with PRO. `app.py` +
+> `requirements.txt` are the no-Docker alternative for a Gradio Space.
+
 This folder holds the two files of the LeafScan Space: this `README.md` (the Space settings in the
 front matter above) and the `Dockerfile`.
 
