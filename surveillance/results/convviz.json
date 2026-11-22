@@ -1,0 +1,12 @@
+{
+ "conv2d_max_difference_vs_scipy": {
+  "Sobel x (vertical edges)": 4.440892098500626e-16,
+  "Sobel y (horizontal edges)": 4.440892098500626e-16,
+  "Laplacian (spots, blobs)": 3.3306690738754696e-16,
+  "5x5 mean (blur)": 3.3306690738754696e-16
+ },
+ "resnet_weights": "trained LeafScan ResNet-50 baseline",
+ "gradcam_finding": "For late blight the evidence sits on the lesion. For bacterial spot, common rust and black rot much of it sits on the background and image borders: PlantVillage photographed each class against similar backdrops, so the model partly learned the backdrop. This 'shortcut' is one reason field accuracy (71%) is far below lab accuracy (99.6%); see the error analysis and model card.",
+ "conv3d_max_difference_vs_torch": 2.498001805406602e-16,
+ "conv3d_new_damage_IoU": 0.727
+}

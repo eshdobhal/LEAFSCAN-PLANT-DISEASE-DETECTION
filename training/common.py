@@ -69,9 +69,29 @@ def load_splits():
     return json.loads(SPLITS.read_text(encoding="utf-8"))
 
 
-def build_model(pretrained: bool):
-    import timm
-    return timm.create_model(PRETRAINED if pretrained else ARCH, pretrained=pretrained, num_classes=len(CLASSES))
+def build_model(pretrained: bool, arch: str = ARCH):
+    """The shipped hybrid (caformer_s18, timm) or a classic CNN baseline from the brief's list
+    (resnet50, googlenet: torchvision ImageNet weights). The classifier head is replaced for 39 classes."""
+    if arch == ARCH:
+        import timm
+        return timm.create_model(PRETRAINED if pretrained else ARCH, pretrained=pretrained, num_classes=len(CLASSES))
+    import torchvision.models as tvm
+    if arch == "resnet50":
+        net = tvm.resnet50(weights=tvm.ResNet50_Weights.IMAGENET1K_V2 if pretrained else None)
+    elif arch == "googlenet":
+        net = tvm.googlenet(weights=tvm.GoogLeNet_Weights.IMAGENET1K_V1 if pretrained else None,
+                            aux_logits=pretrained, init_weights=False)
+        net.aux_logits, net.aux1, net.aux2 = False, None, None  # the auxiliary heads are only a training aid
+    else:
+        raise ValueError(f"unknown architecture {arch}")
+    net.fc = torch.nn.Linear(net.fc.in_features, len(CLASSES))
+    return net
+
+
+def run_arch(run_name: str) -> str:
+    """Architecture a training run used (runs/<name>/config.json); older runs are the shipped hybrid."""
+    cfg = RUNS / run_name / "config.json"
+    return json.loads(cfg.read_text())["arch"] if cfg.exists() else ARCH
 
 
 def metrics(y_true, y_pred, labels=None):

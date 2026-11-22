@@ -15,7 +15,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
-from common import (CLASSES, EVAL_TF, ROOT, RUNS, TRAIN_TF, LeafDataset, build_model, load_splits, metrics,
+from common import (CLASSES, EVAL_TF, ROOT, RUNS, SIZE, TRAIN_TF, LeafDataset, build_model, load_splits, metrics,
                     predict_probs)
 
 
@@ -50,6 +50,7 @@ def main():
     ap.add_argument("--field-share", type=float, default=0.3)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--name", default="caformer_s18")
+    ap.add_argument("--arch", default="caformer_s18", help="caformer_s18 (shipped), resnet50 or googlenet")
     ap.add_argument("--no-copy", action="store_true", help="don't copy the best weights into the app")
     args = ap.parse_args()
 
@@ -64,7 +65,7 @@ def main():
                         sampler=balanced_sampler(train_items, args.field_share),
                         num_workers=args.workers, pin_memory=True, persistent_workers=True, drop_last=True)
 
-    model = build_model(pretrained=True).to(device, memory_format=torch.channels_last)  # faster convs on GPU
+    model = build_model(pretrained=True, arch=args.arch).to(device, memory_format=torch.channels_last)  # faster convs on GPU
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.05)
     steps = args.epochs * len(loader)
     warmup = len(loader)  # one epoch of linear warm-up, then cosine decay
@@ -74,6 +75,7 @@ def main():
 
     out_dir = RUNS / args.name
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "config.json").write_text(json.dumps({**vars(args), "size": SIZE}, indent=1))
     best, history = -1.0, []
     for epoch in range(args.epochs):
         model.train()

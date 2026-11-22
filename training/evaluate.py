@@ -13,11 +13,11 @@ import json
 import torch
 from torch.utils.data import DataLoader
 
-from common import RUNS, LeafDataset, build_model, eval_transform, load_splits, metrics, predict_probs
+from common import RUNS, LeafDataset, build_model, eval_transform, load_splits, metrics, predict_probs, run_arch
 
 
 def load(run_name, device):
-    model = build_model(pretrained=False)
+    model = build_model(pretrained=False, arch=run_arch(run_name))
     state = torch.load(RUNS / run_name / "best.pt", map_location="cpu", weights_only=True)
     model.load_state_dict({k: v.float() if v.is_floating_point() else v for k, v in state.items()})
     return model.to(device)

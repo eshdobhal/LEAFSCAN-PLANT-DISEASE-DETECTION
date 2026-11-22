@@ -1,0 +1,333 @@
+{
+ "base": {
+  "sizes": [
+   1728,
+   256,
+   128,
+   8
+  ],
+  "activation": "relu",
+  "init": "he",
+  "batchnorm": false,
+  "dropout": 0.0,
+  "optimizer": "momentum",
+  "lr": 0.01,
+  "batch_size": 64,
+  "epochs": 30,
+  "l2": 0.0,
+  "augment": false,
+  "train_per_class": 250,
+  "standardise": true
+ },
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "studies": {
+  "optimizer": [
+   {
+    "variant": "Batch GD (full batch, lr 0.1)",
+    "changed": {
+     "optimizer": "sgd",
+     "batch_size": null,
+     "lr": 0.1
+    },
+    "val_acc_mean": 0.8405,
+    "val_acc_std": 0.0047,
+    "train_acc_mean": 0.9452,
+    "generalisation_gap": 0.1047,
+    "seconds_per_run": 1.42
+   },
+   {
+    "variant": "SGD (batch 64)",
+    "changed": {
+     "optimizer": "sgd"
+    },
+    "val_acc_mean": 0.8642,
+    "val_acc_std": 0.0047,
+    "train_acc_mean": 0.9985,
+    "generalisation_gap": 0.1343,
+    "seconds_per_run": 3.7
+   },
+   {
+    "variant": "Momentum 0.9",
+    "changed": {
+     "optimizer": "momentum"
+    },
+    "val_acc_mean": 0.8815,
+    "val_acc_std": 0.0018,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1185,
+    "seconds_per_run": 7.97
+   },
+   {
+    "variant": "Nesterov 0.9",
+    "changed": {
+     "optimizer": "nesterov"
+    },
+    "val_acc_mean": 0.8822,
+    "val_acc_std": 0.0079,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1178,
+    "seconds_per_run": 11.92
+   }
+  ],
+  "initialisation": [
+   {
+    "variant": "zeros",
+    "changed": {
+     "init": "zeros",
+     "sizes": [
+      1728,
+      128,
+      128,
+      128,
+      8
+     ]
+    },
+    "val_acc_mean": 0.1293,
+    "val_acc_std": 0.0,
+    "train_acc_mean": 0.125,
+    "generalisation_gap": -0.0043,
+    "seconds_per_run": 2.8
+   },
+   {
+    "variant": "normal(0, 0.01)",
+    "changed": {
+     "init": "normal",
+     "sizes": [
+      1728,
+      128,
+      128,
+      128,
+      8
+     ]
+    },
+    "val_acc_mean": 0.7967,
+    "val_acc_std": 0.0177,
+    "train_acc_mean": 0.9605,
+    "generalisation_gap": 0.1638,
+    "seconds_per_run": 2.81
+   },
+   {
+    "variant": "Xavier",
+    "changed": {
+     "init": "xavier",
+     "sizes": [
+      1728,
+      128,
+      128,
+      128,
+      8
+     ]
+    },
+    "val_acc_mean": 0.8829,
+    "val_acc_std": 0.0051,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1171,
+    "seconds_per_run": 2.79
+   },
+   {
+    "variant": "He",
+    "changed": {
+     "init": "he",
+     "sizes": [
+      1728,
+      128,
+      128,
+      128,
+      8
+     ]
+    },
+    "val_acc_mean": 0.8786,
+    "val_acc_std": 0.0079,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1214,
+    "seconds_per_run": 2.78
+   }
+  ],
+  "normalisation": [
+   {
+    "variant": "none (raw pixels 0-1)",
+    "changed": {
+     "standardise": false
+    },
+    "val_acc_mean": 0.8434,
+    "val_acc_std": 0.0132,
+    "train_acc_mean": 0.8788,
+    "generalisation_gap": 0.0354,
+    "seconds_per_run": 6.15
+   },
+   {
+    "variant": "input standardisation",
+    "changed": {},
+    "val_acc_mean": 0.8815,
+    "val_acc_std": 0.0018,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1185,
+    "seconds_per_run": 5.08
+   },
+   {
+    "variant": "standardisation + BatchNorm",
+    "changed": {
+     "batchnorm": true
+    },
+    "val_acc_mean": 0.9131,
+    "val_acc_std": 0.002,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.0869,
+    "seconds_per_run": 6.74
+   }
+  ],
+  "regularisation": [
+   {
+    "variant": "none",
+    "changed": {
+     "train_per_class": 40,
+     "epochs": 80
+    },
+    "val_acc_mean": 0.7773,
+    "val_acc_std": 0.0067,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.2227,
+    "seconds_per_run": 2.35
+   },
+   {
+    "variant": "L2 1e-3",
+    "changed": {
+     "train_per_class": 40,
+     "epochs": 80,
+     "l2": 0.001
+    },
+    "val_acc_mean": 0.7787,
+    "val_acc_std": 0.0057,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.2213,
+    "seconds_per_run": 3.27
+   },
+   {
+    "variant": "dropout 0.3",
+    "changed": {
+     "train_per_class": 40,
+     "epochs": 80,
+     "dropout": 0.3
+    },
+    "val_acc_mean": 0.783,
+    "val_acc_std": 0.0087,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.217,
+    "seconds_per_run": 2.29
+   },
+   {
+    "variant": "augmentation",
+    "changed": {
+     "train_per_class": 40,
+     "epochs": 80,
+     "augment": true
+    },
+    "val_acc_mean": 0.8132,
+    "val_acc_std": 0.0054,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1868,
+    "seconds_per_run": 3.11
+   },
+   {
+    "variant": "L2 + dropout + augmentation",
+    "changed": {
+     "train_per_class": 40,
+     "epochs": 80,
+     "l2": 0.001,
+     "dropout": 0.3,
+     "augment": true
+    },
+    "val_acc_mean": 0.806,
+    "val_acc_std": 0.0091,
+    "train_acc_mean": 0.9979,
+    "generalisation_gap": 0.1919,
+    "seconds_per_run": 3.83
+   }
+  ],
+  "training_set_size": [
+   {
+    "variant": "20 per class",
+    "changed": {
+     "train_per_class": 20
+    },
+    "val_acc_mean": 0.694,
+    "val_acc_std": 0.0123,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.306,
+    "seconds_per_run": 0.57
+   },
+   {
+    "variant": "50 per class",
+    "changed": {
+     "train_per_class": 50
+    },
+    "val_acc_mean": 0.768,
+    "val_acc_std": 0.0097,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.232,
+    "seconds_per_run": 1.02
+   },
+   {
+    "variant": "100 per class",
+    "changed": {
+     "train_per_class": 100
+    },
+    "val_acc_mean": 0.8362,
+    "val_acc_std": 0.0122,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1638,
+    "seconds_per_run": 1.86
+   },
+   {
+    "variant": "250 per class",
+    "changed": {
+     "train_per_class": 250
+    },
+    "val_acc_mean": 0.8815,
+    "val_acc_std": 0.0018,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1185,
+    "seconds_per_run": 4.68
+   }
+  ],
+  "activation": [
+   {
+    "variant": "sigmoid",
+    "changed": {
+     "activation": "sigmoid",
+     "init": "xavier"
+    },
+    "val_acc_mean": 0.8815,
+    "val_acc_std": 0.0035,
+    "train_acc_mean": 0.956,
+    "generalisation_gap": 0.0745,
+    "seconds_per_run": 7.32
+   },
+   {
+    "variant": "tanh",
+    "changed": {
+     "activation": "tanh",
+     "init": "xavier"
+    },
+    "val_acc_mean": 0.8807,
+    "val_acc_std": 0.001,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1193,
+    "seconds_per_run": 5.99
+   },
+   {
+    "variant": "ReLU",
+    "changed": {},
+    "val_acc_mean": 0.8815,
+    "val_acc_std": 0.0018,
+    "train_acc_mean": 1.0,
+    "generalisation_gap": 0.1185,
+    "seconds_per_run": 5.39
+   }
+  ]
+ }
+}

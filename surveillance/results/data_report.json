@@ -1,0 +1,43 @@
+{
+ "tea": {
+  "images": 2715,
+  "exact_duplicates_removed": 6876,
+  "boxes_kept": {
+   "leaf rust": 966,
+   "red spider mite (pest)": 329,
+   "tea mosquito bug (pest)": 2091,
+   "healthy tea leaf": 136,
+   "white spot": 96,
+   "black rot": 40
+  },
+  "boxes_dropped_too_rare": {
+   "Brown blight of tea": 2,
+   "disease": 1
+  },
+  "images_per_split": {
+   "train": 2040,
+   "val": 269,
+   "test": 406
+  }
+ },
+ "leafseg": {
+  "pairs": 588,
+  "exact_duplicates_removed": 0,
+  "split_sizes": {
+   "test": 88,
+   "val": 88,
+   "train": 412
+  },
+  "lesion_fraction_mean": 0.117,
+  "lesion_fraction_median": 0.0674
+ },
+ "plantdoc_detection": {
+  "classes": 29,
+  "images_per_split": {
+   "train": 0,
+   "val": 0,
+   "test": 172
+  },
+  "photos_in_more_than_one_split": 0
+ }
+}
