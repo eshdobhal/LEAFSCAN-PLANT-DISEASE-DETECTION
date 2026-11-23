@@ -837,6 +837,12 @@ App name, author, upload limit and sample photos live in `Flask Deployed App/con
 
 ## 13. Testing and quality
 
+**One command for everything** (build check plus all four test suites, each in its own environment):
+
+```powershell
+python scripts\check_all.py --e2e
+```
+
 ```powershell
 pip install -r "Flask Deployed App\requirements-dev.txt"
 python -m playwright install chromium
@@ -855,7 +861,7 @@ python scripts\screenshots.py     # regenerates screenshots/ and checks for side
 | `tests/test_model.py` | 4 | Model selection (`auto`, ensemble on/off), top-3 output, preprocessing at 224 and 288 px |
 | `tests/test_e2e.py` | 15 | Real Chromium: upload → result, sample button, 4000 px PNG resized in the browser, camera capture (dialog centred, stream stopped), filters, theme persistence, phone menu, no-JavaScript upload, no overflow at 320/375/1440 px, skip link, no console/CSP errors, API |
 | `fundamentals/tests/` | 29 | Gradient checks of every NumPy layer against finite differences; neurons, optimisers, learning rules |
-| `surveillance/tests/` | 18 | Detection labels and augmentation, lesion instances and F1, severity grades, temperature scaling and ECE, convolution by hand, simulation, forecaster, CLI |
+| `surveillance/tests/` | 20 | Detection labels and augmentation, lesion instances and F1, severity grades, temperature scaling and ECE, convolution by hand, simulation, forecaster, CLI |
 
 GitHub Actions runs the 53 app and model tests with the real weights, and the 29 fundamentals tests, on every push
 ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)). The browser version is built and tested in
@@ -970,6 +976,7 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 ├── Model/                          the original CNN training notebook
 ├── DECISIONS.md                    every design decision and its reason
 ├── CODE_WALKTHROUGH.md             file-by-file explanation with line numbers
+├── pyproject.toml                  build file: pip install -e ".[research]" → leafscan-surveillance command
 ├── requirements-research.txt       pinned research and training environment
 └── THIRD_PARTY_NOTICES.md          datasets, libraries and assets used
 ```

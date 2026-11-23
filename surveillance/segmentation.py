@@ -125,6 +125,19 @@ def severity(rgb, lesion):
 
 
 # ------------------------------------------------------------------ training (semantic)
+def run_config(model, epochs):
+    """Every setting of a segmentation run (the hyperparameters live in the code, so they are written out here)."""
+    common = {"model": model, "epochs": epochs, "seed": 0, "image_size": SIZE, "normalise_mean": MEAN, "normalise_std": STD,
+              "augmentation": "horizontal + vertical flips, brightness and saturation x0.8-1.2", "scheduler": "cosine annealing",
+              "train_val_test": {k: len(v) for k, v in splits().items()}, "min_lesion_px": MIN_LESION_PX,
+              "severity_bins": SEVERITY_BINS}
+    if model == "maskrcnn":
+        return {**common, "weights": "COCO (torchvision MaskRCNN_ResNet50_FPN_V2)", "batch": 4,
+                "optimizer": "SGD lr 0.01 momentum 0.9 weight decay 1e-4", "instances": "connected lesion regions"}
+    return {**common, "weights": "COCO with VOC labels (torchvision)", "batch": 8, "aux_loss": True,
+            "optimizer": "AdamW lr 1e-4 weight decay 1e-4", "loss": "cross-entropy, class weights [1, 3]"}
+
+
 def train_semantic(args):
     torch.manual_seed(0)
     random.seed(0)
@@ -137,6 +150,7 @@ def train_semantic(args):
     loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([1.0, 3.0], device=device))  # lesions are ~12% of pixels
     out = RUNS / f"leafseg_{args.model}"
     out.mkdir(parents=True, exist_ok=True)
+    (out / "config.json").write_text(json.dumps(run_config(args.model, args.epochs), indent=1))
     best, history = -1, []
     for epoch in range(args.epochs):
         net.train()
@@ -291,6 +305,7 @@ def train_maskrcnn(args):
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, args.epochs)
     out = RUNS / "leafseg_maskrcnn"
     out.mkdir(parents=True, exist_ok=True)
+    (out / "config.json").write_text(json.dumps(run_config("maskrcnn", args.epochs), indent=1))
     best, history = -1, []
     for epoch in range(args.epochs):
         net.train()

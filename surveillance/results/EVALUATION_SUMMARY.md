@@ -50,6 +50,8 @@ T(lab) on lab validation photos, and T(mixed) on both together, to show the effe
 
 Photos of 13 other crops (PlantDoc test, no tea pests): 89% get a false pest box at score ≥ 0.4 (210/236). Tea test photos that contain a pest: 100% detected (259/259). Hence pest detection runs only for crop = tea.
 
+At the validation-tuned threshold 0.75: 69% false alarms on other crops (162/236), 100% of tea pest photos caught. Still far too many false alarms: the crop gate stays.
+
 ## Segmentation and instance analysis (LeafNet75 test)
 
 - **leafseg_deeplab**: IoU_lesion 0.5814, Dice_lesion 0.7353, pixel_accuracy 0.9532, per_image_IoU_median 0.7104, lesion_precision 0.2732, lesion_recall 0.3079, lesion_F1_at_IoU0.5 0.2896, lesion_count_MAE 2.61, severity_fraction_MAE 0.0485, severity_grade_exact 0.7159, severity_grade_within_1 0.875, cpu_latency_ms 526.4, parameters_M 42.0, test_images 88
@@ -71,3 +73,38 @@ Components: classify, detect, pests, segment, forecast.
 
 Pipeline process: peak memory 1777 MB, 1761 MB at the end.
 Web app (Flask, both classifiers, `/api/predict`): median request 193.7 ms, peak memory 687 MB.
+
+## Confusion matrices
+
+Figures: `confusion_field_ensemble.png` (shipped ensemble, field test) and `confusion_mlp_baseline.png`.
+
+| Classifier (field test) | Accuracy | Most confused pairs (true → predicted, photos) |
+|---|---:|---|
+| CAFormer-S18 224 | 68.44% | Cherry: healthy → Apple: healthy (6); Corn: Northern Leaf Blight → Corn: gray leaf spot (5); Tomato: Tomato mosaic virus → Tomato: Leaf Mold (3) |
+| CAFormer-S18 288 | 68.44% | Tomato: Tomato mosaic virus → Tomato: Leaf Mold (4); Corn: Northern Leaf Blight → Corn: gray leaf spot (4); Potato: Early blight → Potato: Late blight (3) |
+| CAFormer ensemble (shipped) | 71.11% | Corn: Northern Leaf Blight → Corn: gray leaf spot (4); Cherry: healthy → Apple: healthy (4); Tomato: Tomato mosaic virus → Tomato: Leaf Mold (3) |
+| ResNet-50 | 70.67% | Tomato: Bacterial spot → Tomato: Septoria leaf spot (4); Corn: Northern Leaf Blight → Corn: gray leaf spot (4); Pepper: Bacterial spot → Tomato: Septoria leaf spot (3) |
+| GoogLeNet | 72.00% | Corn: Northern Leaf Blight → Corn: gray leaf spot (4); Cherry: healthy → Apple: healthy (4); Tomato: healthy → Tomato: Leaf Mold (3) |
+
+DeepLabV3 pixels on the lesion test set: lesion recall 74.7%, lesion precision 72.4%, background kept 97.3%.
+
+## Failure cases (chosen by rule on the test sets)
+
+- Classification: 65 mistakes in 225 field photos, 23 of them made at ≥ 80% confidence. Most confident mistakes:
+  - `Tomato_2BBacterial_2BSpot_2Bon_2BLeaves_d7dad5a4.jpg`: true Tomato___Bacterial_spot, predicted Tomato___Septoria_leaf_spot (91%)
+  - `early-blight-or-target-spot-alternaria-s_0857ad22.jpg`: true Potato___Early_blight, predicted Tomato___Early_blight (91%)
+  - `rsz0803Figure6_40ee7437.jpg`: true Corn___Cercospora_leaf_spot Gray_leaf_spot, predicted Corn___Northern_Leaf_Blight (90%)
+  - `816_17f725b5.jpg`: true Apple___Apple_scab, predicted Apple___Cedar_apple_rust (90%)
+  - `toma_TMV_9fd5346a.jpg`: true Tomato___Tomato_mosaic_virus, predicted Tomato___Leaf_Mold (90%)
+  - `leaf-raspberry-isolated-on-a-white-stock_9ae36cfd.jpg`: true Soybean___healthy, predicted Raspberry___healthy (90%)
+  - `stock-photo-green-blueberry-leaf-isolate_81a02144.jpg`: true Blueberry___healthy, predicted Apple___healthy (90%)
+  - `potato-blight-phytophthora-infestans-clo_5e4a15ca.jpg`: true Potato___Early_blight, predicted Potato___Late_blight (90%)
+  - `3023_93d0ed71.jpg`: true Potato___Early_blight, predicted Potato___Late_blight (90%)
+  - `07c_06365dc9.jpg`: true Corn___Northern_Leaf_Blight, predicted Corn___Cercospora_leaf_spot Gray_leaf_spot (89%)
+  - `20130610_110514_6c93c6d4.jpg`: true Apple___Cedar_apple_rust, predicted Apple___Apple_scab (89%)
+  - `0796.20graylssymt_b1e09902.jpg`: true Corn___Northern_Leaf_Blight, predicted Corn___Cercospora_leaf_spot Gray_leaf_spot (89%)
+- Segmentation, lowest lesion IoU: 00162 (0.01), 00018 (0.12), 00207 (0.24), 00081 (0.33)
+- Detection: RetinaNet finds none of the true boxes on 115 of 236 PlantDoc test photos; lowest recall: `Tomato59.JPG.jpg`, `00.jpg`, `17fc47.jpg`
+- Tea pest model on other crops, strongest false alarms: `8226402877_9abf151b5b_b.jpg` (100%), `636227737977191231-septoria-leaf-spot-VT.jpg` (100%), `RARZ4.jpg` (100%)
+
+Photo galleries: `python -m surveillance.failure_cases` writes them to `surveillance/results/local_only/` (not committed: the photos are web-sourced, some watermarked).

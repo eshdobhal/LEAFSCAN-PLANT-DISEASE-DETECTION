@@ -171,6 +171,11 @@ def deployment():
     return rows
 
 
+def pipeline_threshold(key):
+    from surveillance.pipeline import DETECT_THRESHOLD, THRESHOLDS
+    return THRESHOLDS.get(key, DETECT_THRESHOLD)
+
+
 @torch.inference_mode()
 def pest_out_of_domain(threshold=0.40):
     """How often the tea-trained pest model reports a pest on photos that contain none (PlantDoc test, 13 other
@@ -389,12 +394,16 @@ def main():
 
     # 4. Out-of-domain behaviour of the pest model
     out["pest_out_of_domain"] = pest_out_of_domain()
+    out["pest_out_of_domain_at_tuned_threshold"] = pest_out_of_domain(pipeline_threshold("tea_retinanet"))
     print("pest model out of domain:", out["pest_out_of_domain"], flush=True)
 
     # 5. Deployment profile
     out["deployment"] = deployment()
     out["pipeline_cpu_profile"] = full_pipeline_profile()
     (RESULTS / "evaluation.json").write_text(json.dumps(out, indent=1))
+    # 6. Confusion matrices and failure cases (surveillance/failure_cases.py)
+    from surveillance import failure_cases
+    failure_cases.main()
     write_summary(out)
     print(json.dumps(out["pipeline_cpu_profile"], indent=1))
 
@@ -425,6 +434,11 @@ def write_summary(out):
                   f"box at score ≥ {po['threshold']} ({po['other_crops_with_false_pest']}/{po['other_crops_photos']}). "
                   f"Tea test photos that contain a pest: {po['pest_photo_recall_tea']:.0%} detected "
                   f"({po['tea_pest_photos_detected']}/{po['tea_photos_with_pest']}). Hence pest detection runs only for crop = tea."]
+        pt = out.get("pest_out_of_domain_at_tuned_threshold")
+        if pt:
+            lines += ["", f"At the validation-tuned threshold {pt['threshold']}: {pt['false_pest_rate_other_crops']:.0%} false alarms on "
+                          f"other crops ({pt['other_crops_with_false_pest']}/{pt['other_crops_photos']}), "
+                          f"{pt['pest_photo_recall_tea']:.0%} of tea pest photos caught. Still far too many false alarms: the crop gate stays."]
     lines += ["", "## Segmentation and instance analysis (LeafNet75 test)", ""]
     for name, m in out["segmentation"].items():
         lines.append(f"- **{name}**: " + ", ".join(f"{k} {v}" for k, v in m.items()))
@@ -436,6 +450,30 @@ def write_summary(out):
     if w:
         lines += [f"Web app (Flask, both classifiers, `/api/predict`): median request {w['median_request_ms']} ms, "
                   f"peak memory {w['peak_memory_MB']} MB."]
+    fc_path = RESULTS / "failure_cases.json"
+    if fc_path.exists():
+        fc = json.loads(fc_path.read_text())
+        lines += ["", "## Confusion matrices", "",
+                  "Figures: `confusion_field_ensemble.png` (shipped ensemble, field test) and `confusion_mlp_baseline.png`.", "",
+                  "| Classifier (field test) | Accuracy | Most confused pairs (true → predicted, photos) |", "|---|---:|---|"]
+        for name, r in fc["confusion"]["classifiers_field"].items():
+            pairs = "; ".join(f"{q['true']} → {q['predicted']} ({q['photos']})" for q in r["most_confused_pairs"][:3])
+            lines.append(f"| {name} | {r['field_accuracy']:.2%} | {pairs} |")
+        (tn, fp), (fn, tp) = fc["confusion"]["segmentation_pixels"]
+        lines += ["", f"DeepLabV3 pixels on the lesion test set: lesion recall {tp / (tp + fn):.1%}, lesion precision "
+                      f"{tp / (tp + fp):.1%}, background kept {tn / (tn + fp):.1%}."]
+        c, sg, d = fc["failures"]["classification"], fc["failures"]["segmentation"], fc["failures"]["detection"]
+        lines += ["", "## Failure cases (chosen by rule on the test sets)", "",
+                  f"- Classification: {c['mistakes']} mistakes in 225 field photos, {c['mistakes_at_80pct_or_more_confidence']} of them "
+                  "made at ≥ 80% confidence. Most confident mistakes:"]
+        lines += [f"  - `{Path(r['photo']).name}`: true {r['true']}, predicted {r['predicted']} ({r['confidence']:.0%})" for r in c["shown"]]
+        lines += ["- Segmentation, lowest lesion IoU: " + ", ".join(f"{w['image']} ({w['IoU']:.2f})" for w in sg["worst"]),
+                  f"- Detection: RetinaNet finds none of the true boxes on {d['photos_with_zero_recall']} of {d['photos_scored']} "
+                  "PlantDoc test photos; lowest recall: " + ", ".join(f"`{w['image']}`" for w in d["lowest_recall"]),
+                  "- Tea pest model on other crops, strongest false alarms: "
+                  + ", ".join(f"`{w['image']}` ({w['max_pest_score']:.0%})" for w in d["false_pest_alarms"]),
+                  "", "Photo galleries: `python -m surveillance.failure_cases` writes them to `surveillance/results/local_only/` "
+                  "(not committed: the photos are web-sourced, some watermarked)."]
     (RESULTS / "EVALUATION_SUMMARY.md").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -447,6 +485,14 @@ if __name__ == "__main__":
         plot_reliability(saved)
         (RESULTS / "evaluation.json").write_text(json.dumps(saved, indent=1))
         write_summary(saved)
+    elif "--pests-only" in sys.argv:  # re-measure the pest model on other crops, keep every other result
+        saved = json.loads((RESULTS / "evaluation.json").read_text())
+        saved["pest_out_of_domain_at_tuned_threshold"] = pest_out_of_domain(pipeline_threshold("tea_retinanet"))
+        (RESULTS / "evaluation.json").write_text(json.dumps(saved, indent=1))
+        write_summary(saved)
+        print(saved["pest_out_of_domain_at_tuned_threshold"])
+    elif "--summary-only" in sys.argv:  # rewrite EVALUATION_SUMMARY.md from the saved results
+        write_summary(json.loads((RESULTS / "evaluation.json").read_text()))
     elif "--profile-only" in sys.argv:  # re-measure latency and memory, keep every other result
         saved = json.loads((RESULTS / "evaluation.json").read_text())
         saved["pipeline_cpu_profile"] = full_pipeline_profile()

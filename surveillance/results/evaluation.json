@@ -1260,5 +1260,14 @@
     ]
    ]
   ]
+ },
+ "pest_out_of_domain_at_tuned_threshold": {
+  "threshold": 0.75,
+  "other_crops_photos": 236,
+  "other_crops_with_false_pest": 162,
+  "false_pest_rate_other_crops": 0.6864,
+  "tea_photos_with_pest": 259,
+  "tea_pest_photos_detected": 258,
+  "pest_photo_recall_tea": 0.9961
  }
 }

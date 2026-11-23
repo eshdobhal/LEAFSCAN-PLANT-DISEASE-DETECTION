@@ -398,4 +398,8 @@ benchmarked across model families, with a full evaluation package. Decisions, ea
 | Synthetic scouting clip labelled SYNTHETIC in its file name, the video and every document | No openly licensed annotated field video exists; the label prevents it being mistaken for field evidence |
 | Disclaimer on every result (web page, browser version, API `notice`, CLI notes) | Requirement R13; previously only the About page carried it |
 | Temperature fitted as exp(log T) | A raw T overshot to a negative value when nearly every prediction is right (lab photos); found by a test written after the first evaluation run crashed |
+| Detection thresholds tuned on validation, per detector (0.40 / 0.50 / 0.75) | One fixed 0.40 for every model was not justified; the validation sweep confirmed 0.40 for PlantDoc RetinaNet and raised F1 for the other two |
+| Failure galleries generated locally, not committed | They show web-sourced PlantDoc / LeafNet75 photos, several watermarked stock images; the file names and labels are committed in `failure_cases.json` |
+| `pyproject.toml` + `scripts/check_all.py` | The brief asks for a CMake/Maven/Gradle-style build and one reproducible test command; with Python, that is a pyproject build plus one runner that uses each suite's own environment |
+| CLI logs every run and saves `run_config.json`; a bad photo does not stop a batch | Operators need an audit trail and settings that can be reproduced; one corrupt file in a scouting batch should not lose the other results |
 | Generative models not used in the product | Measured: VAE and GAN leaves were no better than repeating the 25 real photos; the GAN mode-collapsed |

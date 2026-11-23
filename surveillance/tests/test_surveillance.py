@@ -150,3 +150,26 @@ def test_corruptions_survive_pickling_for_dataloader_workers():
         f = pickle.loads(pickle.dumps(corruption(kind, level)))
         assert f(img).mode == "RGB"
         assert list(f(img).getdata()) == list(corruption(kind, level)(img).getdata())  # deterministic
+
+
+def test_cli_logs_bad_photo_keeps_going_and_records_config(tmp_path):
+    """A broken photo is logged and gives exit code 1; the good photo is still analysed; settings are saved."""
+    from surveillance import cli
+    bad = tmp_path / "broken.jpg"
+    bad.write_bytes(b"not an image")
+    log_file = tmp_path / "run.log"
+    code = cli.main(["analyze", str(bad), str(ROOT / "test_images" / "tomato-mold.jpg"), "--only", "classify",
+                     "--out", str(tmp_path / "out"), "--device", "cpu", "--log-file", str(log_file)])
+    assert code == 1
+    assert (tmp_path / "out" / "tomato-mold.json").exists()
+    text = log_file.read_text(encoding="utf-8")
+    assert "failed:" in text and "broken.jpg" in text and "photo {" in text and "done: 2 photo(s), 1 error(s)" in text
+    config = json.loads((tmp_path / "out" / "run_config.json").read_text())
+    assert config["components"] == ["classify"] and config["device"] == "cpu" and "torch" in config
+
+
+def test_detection_thresholds_come_from_validation_tuning():
+    from surveillance.pipeline import THRESHOLDS
+    tuned = json.loads((ROOT / "surveillance" / "results" / "detection_thresholds.json").read_text())
+    assert THRESHOLDS == {k: v["best"]["threshold"] for k, v in tuned.items()}
+    assert all(v["best"]["F1"] >= v["at_0.40"]["F1"] for v in tuned.values())

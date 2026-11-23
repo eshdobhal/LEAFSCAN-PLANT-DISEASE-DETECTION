@@ -1,0 +1,403 @@
+{
+ "confusion": {
+  "classifiers_field": {
+   "CAFormer-S18 224": {
+    "most_confused_pairs": [
+     {
+      "true": "Cherry: healthy",
+      "predicted": "Apple: healthy",
+      "photos": 6
+     },
+     {
+      "true": "Corn: Northern Leaf Blight",
+      "predicted": "Corn: gray leaf spot",
+      "photos": 5
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Leaf Mold",
+      "photos": 3
+     },
+     {
+      "true": "Potato: Early blight",
+      "predicted": "Potato: Late blight",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Late blight",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Late blight",
+      "predicted": "Tomato: Early blight",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Pepper: Bacterial spot",
+      "photos": 2
+     },
+     {
+      "true": "Corn: gray leaf spot",
+      "predicted": "Corn: Northern Leaf Blight",
+      "photos": 2
+     }
+    ],
+    "field_accuracy": 0.6844
+   },
+   "CAFormer-S18 288": {
+    "most_confused_pairs": [
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Leaf Mold",
+      "photos": 4
+     },
+     {
+      "true": "Corn: Northern Leaf Blight",
+      "predicted": "Corn: gray leaf spot",
+      "photos": 4
+     },
+     {
+      "true": "Potato: Early blight",
+      "predicted": "Potato: Late blight",
+      "photos": 3
+     },
+     {
+      "true": "Pepper: healthy",
+      "predicted": "Pepper: Bacterial spot",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: healthy",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Late blight",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Septoria leaf spot",
+      "predicted": "Tomato: Bacterial spot",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Tomato: Septoria leaf spot",
+      "photos": 2
+     }
+    ],
+    "field_accuracy": 0.6844
+   },
+   "CAFormer ensemble (shipped)": {
+    "most_confused_pairs": [
+     {
+      "true": "Corn: Northern Leaf Blight",
+      "predicted": "Corn: gray leaf spot",
+      "photos": 4
+     },
+     {
+      "true": "Cherry: healthy",
+      "predicted": "Apple: healthy",
+      "photos": 4
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Leaf Mold",
+      "photos": 3
+     },
+     {
+      "true": "Potato: Early blight",
+      "predicted": "Potato: Late blight",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Late blight",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Early blight",
+      "predicted": "Tomato: Bacterial spot",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Tomato: Septoria leaf spot",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Pepper: Bacterial spot",
+      "photos": 2
+     }
+    ],
+    "field_accuracy": 0.7111
+   },
+   "ResNet-50": {
+    "most_confused_pairs": [
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Tomato: Septoria leaf spot",
+      "photos": 4
+     },
+     {
+      "true": "Corn: Northern Leaf Blight",
+      "predicted": "Corn: gray leaf spot",
+      "photos": 4
+     },
+     {
+      "true": "Pepper: Bacterial spot",
+      "predicted": "Tomato: Septoria leaf spot",
+      "photos": 3
+     },
+     {
+      "true": "Cherry: healthy",
+      "predicted": "Apple: healthy",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Leaf Mold",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Septoria leaf spot",
+      "predicted": "Tomato: Bacterial spot",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Early blight",
+      "predicted": "Potato: Early blight",
+      "photos": 2
+     },
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Pepper: Bacterial spot",
+      "photos": 2
+     }
+    ],
+    "field_accuracy": 0.7067
+   },
+   "GoogLeNet": {
+    "most_confused_pairs": [
+     {
+      "true": "Corn: Northern Leaf Blight",
+      "predicted": "Corn: gray leaf spot",
+      "photos": 4
+     },
+     {
+      "true": "Cherry: healthy",
+      "predicted": "Apple: healthy",
+      "photos": 4
+     },
+     {
+      "true": "Tomato: healthy",
+      "predicted": "Tomato: Leaf Mold",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: Leaf Mold",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Septoria leaf spot",
+      "predicted": "Tomato: Bacterial spot",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Bacterial spot",
+      "predicted": "Tomato: Septoria leaf spot",
+      "photos": 3
+     },
+     {
+      "true": "Potato: Early blight",
+      "predicted": "Potato: Late blight",
+      "photos": 3
+     },
+     {
+      "true": "Tomato: Tomato mosaic virus",
+      "predicted": "Tomato: healthy",
+      "photos": 2
+     }
+    ],
+    "field_accuracy": 0.72
+   }
+  },
+  "mlp_baseline": {
+   "test_accuracy": 0.8825,
+   "most_confused_pairs": [
+    {
+     "true": "Potato: Late blight",
+     "predicted": "Potato: Early blight",
+     "photos": 10
+    },
+    {
+     "true": "Apple: healthy",
+     "predicted": "Tomato: healthy",
+     "photos": 7
+    },
+    {
+     "true": "Apple: Apple scab",
+     "predicted": "Potato: Late blight",
+     "photos": 7
+    },
+    {
+     "true": "Potato: Late blight",
+     "predicted": "Apple: healthy",
+     "photos": 6
+    },
+    {
+     "true": "Apple: healthy",
+     "predicted": "Apple: Apple scab",
+     "photos": 6
+    }
+   ]
+  },
+  "segmentation_pixels": [
+   [
+    11524679,
+    321571
+   ],
+   [
+    285961,
+    843917
+   ]
+  ]
+ },
+ "failures": {
+  "classification": {
+   "mistakes": 65,
+   "mistakes_at_80pct_or_more_confidence": 23,
+   "shown": [
+    {
+     "photo": "plantdoc/test/Tomato leaf bacterial spot/Tomato_2BBacterial_2BSpot_2Bon_2BLeaves_d7dad5a4.jpg",
+     "true": "Tomato___Bacterial_spot",
+     "predicted": "Tomato___Septoria_leaf_spot",
+     "confidence": 0.91
+    },
+    {
+     "photo": "plantdoc/test/Potato leaf early blight/early-blight-or-target-spot-alternaria-s_0857ad22.jpg",
+     "true": "Potato___Early_blight",
+     "predicted": "Tomato___Early_blight",
+     "confidence": 0.909
+    },
+    {
+     "photo": "plantdoc/test/Corn Gray leaf spot/rsz0803Figure6_40ee7437.jpg",
+     "true": "Corn___Cercospora_leaf_spot Gray_leaf_spot",
+     "predicted": "Corn___Northern_Leaf_Blight",
+     "confidence": 0.905
+    },
+    {
+     "photo": "plantdoc/test/Apple Scab Leaf/816_17f725b5.jpg",
+     "true": "Apple___Apple_scab",
+     "predicted": "Apple___Cedar_apple_rust",
+     "confidence": 0.902
+    },
+    {
+     "photo": "plantdoc/test/Tomato leaf mosaic virus/toma_TMV_9fd5346a.jpg",
+     "true": "Tomato___Tomato_mosaic_virus",
+     "predicted": "Tomato___Leaf_Mold",
+     "confidence": 0.9
+    },
+    {
+     "photo": "plantdoc/test/Soyabean leaf/leaf-raspberry-isolated-on-a-white-stock_9ae36cfd.jpg",
+     "true": "Soybean___healthy",
+     "predicted": "Raspberry___healthy",
+     "confidence": 0.9
+    },
+    {
+     "photo": "plantdoc/test/Blueberry leaf/stock-photo-green-blueberry-leaf-isolate_81a02144.jpg",
+     "true": "Blueberry___healthy",
+     "predicted": "Apple___healthy",
+     "confidence": 0.897
+    },
+    {
+     "photo": "plantdoc/test/Potato leaf early blight/potato-blight-phytophthora-infestans-clo_5e4a15ca.jpg",
+     "true": "Potato___Early_blight",
+     "predicted": "Potato___Late_blight",
+     "confidence": 0.896
+    },
+    {
+     "photo": "plantdoc/test/Potato leaf early blight/3023_93d0ed71.jpg",
+     "true": "Potato___Early_blight",
+     "predicted": "Potato___Late_blight",
+     "confidence": 0.895
+    },
+    {
+     "photo": "plantdoc/test/Corn leaf blight/07c_06365dc9.jpg",
+     "true": "Corn___Northern_Leaf_Blight",
+     "predicted": "Corn___Cercospora_leaf_spot Gray_leaf_spot",
+     "confidence": 0.891
+    },
+    {
+     "photo": "plantdoc/test/Apple rust leaf/20130610_110514_6c93c6d4.jpg",
+     "true": "Apple___Cedar_apple_rust",
+     "predicted": "Apple___Apple_scab",
+     "confidence": 0.891
+    },
+    {
+     "photo": "plantdoc/test/Corn leaf blight/0796.20graylssymt_b1e09902.jpg",
+     "true": "Corn___Northern_Leaf_Blight",
+     "predicted": "Corn___Cercospora_leaf_spot Gray_leaf_spot",
+     "confidence": 0.89
+    }
+   ]
+  },
+  "segmentation": {
+   "worst": [
+    {
+     "image": "00162",
+     "IoU": 0.007
+    },
+    {
+     "image": "00018",
+     "IoU": 0.116
+    },
+    {
+     "image": "00207",
+     "IoU": 0.236
+    },
+    {
+     "image": "00081",
+     "IoU": 0.328
+    }
+   ]
+  },
+  "detection": {
+   "lowest_recall": [
+    {
+     "image": "Tomato59.JPG.jpg",
+     "recall_at_IoU0.5": 0.0
+    },
+    {
+     "image": "00.jpg",
+     "recall_at_IoU0.5": 0.0
+    },
+    {
+     "image": "17fc47.jpg",
+     "recall_at_IoU0.5": 0.0
+    }
+   ],
+   "false_pest_alarms": [
+    {
+     "image": "8226402877_9abf151b5b_b.jpg",
+     "max_pest_score": 1.0
+    },
+    {
+     "image": "636227737977191231-septoria-leaf-spot-VT.jpg",
+     "max_pest_score": 1.0
+    },
+    {
+     "image": "RARZ4.jpg",
+     "max_pest_score": 1.0
+    }
+   ],
+   "photos_with_zero_recall": 115,
+   "photos_scored": 236
+  }
+ }
+}

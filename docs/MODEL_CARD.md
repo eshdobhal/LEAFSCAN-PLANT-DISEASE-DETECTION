@@ -34,7 +34,7 @@ that were not used for training or model selection.*
 
 | Misuse | What happens | Evidence |
 |---|---|---|
-| Pest detection on crops other than tea | **89% of photos of other crops get a false pest alarm** (210 of 236 PlantDoc test photos); the model learned "spots on a leaf" rather than the pest | `surveillance/results/evaluation.json` → `pest_out_of_domain`. The pipeline therefore runs the pest model only when the crop is declared as tea |
+| Pest detection on crops other than tea | **89% of photos of other crops get a false pest alarm** (210 of 236 PlantDoc test photos; still 69% at the tuned threshold 0.75); the model learned "spots on a leaf" rather than the pest | `surveillance/results/evaluation.json` → `pest_out_of_domain`. The pipeline therefore runs the pest model only when the crop is declared as tea |
 | Classifying crops or diseases outside the 39 classes (e.g. tea) | Maps the photo to the closest known class, usually with low confidence (35% on the tea demo photo) | `demo/`; the pipeline skips classification for tea |
 | Severity on lab-style photos (plain backdrop, single leaf) | Can miss the lesions completely: a PlantVillage late-blight leaf was graded 0% | `demo/reports/plantvillage_potato_late_blight.json`; LeafNet75 masks are in-the-wild photos |
 | Tiny pustules (rusts) | Often below the segmenter's resolution: rust leaves get near-0% severity | error analysis in the technical report |
@@ -136,6 +136,14 @@ the VAE's samples are blurry leaves without lesions, and the GAN **mode-collapse
 
 Measured by `surveillance/evaluate_all.py` in fresh processes on a laptop CPU limited to 4 threads, median
 over 4 photos × 3 runs (the pipeline: each photo also run with `crop="tea"` so the pest model is timed).
+
+### 4.7 Detection thresholds, confusion and failures
+
+Box-score thresholds are chosen on the validation split, for the best F1: PlantDoc RetinaNet 0.40,
+Faster R-CNN 0.50, tea pests 0.75 (`surveillance/results/detection_thresholds.json`). Confusion matrices
+(`confusion_field_ensemble.png`, `confusion_mlp_baseline.png`) and rule-based failure cases
+(`failure_cases.json`) are part of the evaluation package; see technical report §7.5. The deployment plan,
+with its monitoring and rollback, is in §9.1 of the report.
 
 ## 5. Training details
 

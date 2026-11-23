@@ -243,14 +243,24 @@ the files as committed on the `redesign` branch. Author: Esh Dobhal. All app fil
 | `generative.py` | conditional VAE and conditional DCGAN on an imbalanced 64 px set; 5 augmentation variants × 3 seeds; latent PCA / t-SNE and interpolation figures |
 | `convviz.py` | `conv2d_by_hand`, `conv3d_by_hand` (checked against SciPy / PyTorch), ResNet filters and feature maps, Grad-CAM on the shipped CAFormer, 3D temporal kernel on a lesion time-lapse |
 | `pipeline.py` | `Surveillance`: loads each component that has weights (`detector="retinanet"` or `"fasterrcnn"`); `analyze` → `Report` + annotated image; `PEST_CROPS = {"tea"}` gate (pests only for tea, classifier skipped for tea); `analyze_video` (every Nth frame → timeline) |
-| `cli.py` | `analyze`, `video`, `status`; `--crop`, `--detector`, `--history`, `--only`, `--device`; exit codes 0 / 2 (alerts) / 1 |
+| `cli.py` | `analyze`, `video`, `status`; `--crop`, `--detector`, `--history`, `--only`, `--device`, `--log-file`, `--verbose`; writes `run_config.json`; a bad photo is logged and skipped; exit codes 0 / 2 (alerts) / 1 |
 | `evaluate_all.py` | classifier benchmark with ECE before/after temperature scaling (fitted on validation), 16 corruptions, pest out-of-domain test, detection/segmentation summaries, CPU latency and memory → `results/evaluation.json`, `EVALUATION_SUMMARY.md` |
 | `run_experiments.sh` | the training queue: every segmentation, detection, YOLO and generative run with its evaluation |
+| `failure_cases.py` | confusion matrices (all five classifiers on field photos, MLP, DeepLab pixels) and failure cases chosen by rule; photo galleries go to the git-ignored `results/local_only/` |
+| `tune_thresholds.py` | picks each detector's box-score threshold for the best F1 on the validation split → `results/detection_thresholds.json`, read by `pipeline.py` |
 | `download_weights.py` | fetches the trained weights from the v1.1.0 GitHub release into `surveillance/runs/` and `training/runs/`, checking each file's SHA-256; skips files already correct |
-| `tests/test_surveillance.py` | 18 tests: YOLO labels → pixel boxes and flipped boxes, lesion instances and F1, severity grades, temperature scaling (incl. inference-mode inputs and a positive T) and ECE, picklable corruptions, 2D/3D convolution by hand, simulated epidemics, forecaster shapes, CLI report and exit code |
+| `tests/test_surveillance.py` | 20 tests: YOLO labels → pixel boxes and flipped boxes, lesion instances and F1, severity grades, temperature scaling (incl. inference-mode inputs and a positive T) and ECE, picklable corruptions, 2D/3D convolution by hand, simulated epidemics, forecaster shapes, CLI report and exit code, CLI logging of a bad photo and the saved run config, thresholds from validation |
 
 `training/train_hybrid.py --arch resnet50|googlenet` trains the classification baselines with the CAFormer
 recipe; `training/common.py` `run_arch` reads each run's `config.json`, so `evaluate.py` rebuilds the right network.
+
+## Build and checks
+
+- `pyproject.toml`: the build file (the Python counterpart of CMake / Maven / Gradle). `pip install -e ".[research]"`
+  installs `fundamentals` and `surveillance` and the `leafscan-surveillance` command; extras `web`, `dev`, `benchmark`.
+- `scripts/check_all.py`: one command for the whole repository: import and byte-compile checks, then the
+  fundamentals, surveillance and web-app test suites and the HTML checks, each in its own environment;
+  `--e2e` adds the browser tests, `--site DIR` the browser version. Prints a PASS/FAIL table; exit code 0 only if all pass.
 
 ## Demo (`demo/`)
 

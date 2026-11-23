@@ -31,7 +31,10 @@ RUNS = ROOT / "surveillance" / "runs"
 sys.path.insert(0, str(APP))
 
 PEST_CROPS = {"tea"}  # crops the pest model was trained on; see docs/MODEL_CARD.md, "out-of-scope use"
-DETECT_THRESHOLD = 0.40  # box confidence shown in reports (precision/recall trade-off chosen on validation)
+DETECT_THRESHOLD = 0.40  # fallback box-score threshold if no tuned value exists
+# Per-detector thresholds, each chosen for the best F1 on its VALIDATION split (surveillance/tune_thresholds.py).
+_TUNED = ROOT / "surveillance" / "results" / "detection_thresholds.json"
+THRESHOLDS = ({k: v["best"]["threshold"] for k, v in json.loads(_TUNED.read_text()).items()} if _TUNED.exists() else {})
 CONFIDENCE_THRESHOLD = 0.80
 
 
@@ -71,7 +74,7 @@ class Surveillance:
         for comp, data, arch in (("detect", "plantdoc", detector), ("pests", "tea", "retinanet")):
             if comp in components and (RUNS / f"{data}_{arch}" / "best.pt").exists():
                 net, names = detection.load(data, arch, self.device)
-                setattr(self, f"{comp}_model", (net, names))
+                setattr(self, f"{comp}_model", (net, names, THRESHOLDS.get(f"{data}_{arch}", DETECT_THRESHOLD)))
                 self.components.append(comp)
         if "segment" in components and (RUNS / "leafseg_deeplab" / "best.pt").exists():
             from surveillance import segmentation
@@ -101,11 +104,11 @@ class Surveillance:
     @torch.inference_mode()
     def _detect(self, img, which):
         from torchvision.transforms import functional as F
-        net, names = getattr(self, f"{which}_model")
+        net, names, threshold = getattr(self, f"{which}_model")
         out = net([F.to_tensor(img).to(self.device)])[0]
         dets = []
         for box, score, label in zip(out["boxes"].cpu(), out["scores"].cpu(), out["labels"].cpu()):
-            if score >= DETECT_THRESHOLD:
+            if score >= threshold:
                 dets.append({"label": names[int(label) - 1], "score": round(float(score), 3),
                              "box_xyxy": [round(float(v), 1) for v in box]})
         return dets

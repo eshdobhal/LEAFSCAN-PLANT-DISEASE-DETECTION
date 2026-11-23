@@ -384,11 +384,49 @@ The browser version needs no server at all.
 | Look-alike diseases | field confusion matrix | corn northern leaf blight vs gray leaf spot, potato early vs late blight, tomato bacterial spot vs septoria | top-3 shown; "confirm with an extension officer" |
 | 12 classes have no field photos | field recall | PlantDoc lacks them | documented; these are less reliable |
 | Weak PlantDoc detection classes | per-class AP | tomato mould 0.06, bell-pepper leaf 0.11, bacterial spot 0.11: small similar spots, ambiguous boxes | boxes are a locator, the classifier names the disease |
-| Pest false alarms on other crops | 89% of non-tea photos | pest data only exist for tea | crop gate (tea only) |
+| Pest false alarms on other crops | 89% of non-tea photos at 0.40; 69% at the tuned 0.75 | pest data only exist for tea | crop gate (tea only) |
+| Studio stock photos misread | 4 of the 12 most confident field mistakes | PlantDoc's test set includes white-backdrop stock photos; the model reads backdrops | tips for a natural, plain background; documented |
 | Rust pustules missed by the segmenter | demo, corn rust: 0% severity | tiny lesions, LeafNet75 has few rust-type masks | documented; severity is unreliable for rusts |
 | Lab-style photos under-segmented | demo, PlantVillage late blight: 0% | domain shift: masks are in-the-wild | documented |
 | Lesion counts | lesion F1 0.29 | merged or split neighbouring lesions | report area and grade, counts only as approximate |
 | Forecast misses a third of crossings | alert recall 0.68 | noisy severity input; simulated training data | caveat in every forecast; validate on real series |
+
+### 7.5 Confusion matrices and failure cases (`surveillance/failure_cases.py`)
+
+**Confusion matrices.** The figures are `confusion_field_ensemble.png` (every class present in the field test)
+and `confusion_mlp_baseline.png` (the NumPy MLP). The most-confused pairs of all five classifiers are in
+`EVALUATION_SUMMARY.md`. The same few pairs dominate for every architecture:
+- corn northern leaf blight → gray leaf spot (4–5 photos);
+- healthy cherry → healthy apple (4–6);
+- tomato mosaic virus → leaf mould (3–4);
+- potato early → late blight (3).
+
+These errors come from the data, which look alike at field resolution, not from one model's design. At pixel
+level, DeepLabV3 finds 74.7% of lesion pixels with 72.4% precision, and keeps 97.3% of healthy pixels.
+
+**Failure cases**, chosen by rule on the test sets, not by hand:
+
+| Component | Rule | What the failures show |
+|---|---|---|
+| Classification | the 12 most confident of the 65 field mistakes (23 of the 65 were made at ≥ 80% confidence) | **4 of the 12 are studio stock photos** (alamy, shutterstock) of a single leaf on a white backdrop, which PlantDoc's test set contains; the rest are the look-alike pairs above |
+| Segmentation | the 4 test photos with the lowest lesion IoU (0.01–0.33) | faint chlorotic lesions missed (IoU 0.01); dozens of small spots under-segmented (0.12); a shadowed fold taken for a lesion (0.24); a mask that covers the whole leaf while the model marks only the necrotic spots (0.33): partly a labelling convention |
+| Detection | PlantDoc photos with the lowest recall at the deployed threshold | RetinaNet finds no correct box on 115 of 236 test photos at threshold 0.40; it struggles most on whole-plant photos with many small, densely labelled leaves |
+| Pests out of domain | the strongest false pest alarms on other crops | 100%-confidence "tea mosquito bug" boxes on tomato septoria leaf spot and yellow leaf curl |
+
+The photo galleries are written to `surveillance/results/local_only/` by `python -m surveillance.failure_cases`.
+They are not committed, because the photos are web-sourced and several are watermarked stock images; the
+file names and labels are in `failure_cases.json`.
+
+**Detection thresholds** are chosen on the validation split (`surveillance/tune_thresholds.py`, best F1):
+
+| Detector | Threshold | F1 |
+|---|---:|---:|
+| PlantDoc RetinaNet | 0.40 | 0.41 |
+| PlantDoc Faster R-CNN | 0.50 | 0.53 |
+| Tea pest RetinaNet | 0.75 | 0.95 (0.92 at 0.40) |
+
+At its tuned threshold the pest model still raises false alarms on **69%** of photos of other crops (162 of
+236), against 89% at 0.40, so the crop gate stays.
 
 ## 8. Responsible use
 
@@ -419,7 +457,7 @@ The browser version needs no server at all.
 | R11 | web app ≤ 1 GB; full pipeline ≤ 2.5 GB | 687 MB; 1.74 GB | **PASS** |
 | R12 | Grad-CAM available | `convviz.py`, figure above | **PASS** |
 | R13 | "not sure" warning, disclaimers, no storage | warning, disclaimer on every result and in the API, nothing written to disk: 3 dedicated tests, 68/68 app tests pass | **PASS** |
-| R14 | pinned dependencies, seeds, one-command tests, documented splits | `requirements*.txt`, seeds in every script, CI, DATASET_CARD | **PASS** |
+| R14 | pinned dependencies, seeds, one-command tests, documented splits | `pyproject.toml` + pinned requirements, fixed seeds in every script, `config.json` for every vision training run (settings of the others in their results JSON), `scripts/check_all.py`, CI, DATASET_CARD | **PASS** |
 
 **Decision: conditional go, as a scouting aid.**
 
@@ -441,6 +479,52 @@ Conditions:
 
 **No-go:** lesion counting as a decision input, pest detection on other crops, and any automatic spraying.
 
+### 9.1 Deployment plan
+
+| Phase | Scope | Gate to the next phase |
+|---|---|---|
+| **0. Now** | Browser version (classification only) public; CLI and weights in release v1.1.0 for scouts and researchers | — |
+| **1. Pilot, one season** | 2–3 farms with one extension office, in one region: scouts run the CLI or the web app, and **an extension officer reviews every report** before any action. With the growers' consent, reviewed photos form a local, labelled test set | On ≥ 300 local photos: classification accuracy ≥ 70% with ECE ≤ 0.10; officer agrees with the severity grade (±1) on ≥ 85%; zero actions taken without review |
+| **2. Regional roll-out** | More farms and crops of the same region; officer review of a random 10% of reports plus all alerts | Monitoring (below) stays within limits for a full season |
+| **3. New crops, pests or regions** | Each needs its own local test set first | Pest detection for a new crop needs box-annotated local pests, AP@0.5 ≥ 0.50 **and** false alarms on non-target crops ≤ 10%. Forecasts become decision inputs only after ≥ 1 season of real severity series with alert F1 ≥ 0.70 |
+
+**Infrastructure.**
+- **Web app:** one CPU instance with 1 GB RAM (measured 687 MB; 194 ms per photo).
+- **Surveillance pipeline:** a 4-vCPU, 4 GB worker (measured 1.74 GB). At 1.36 s per photo, that is about
+  2,600 photos per hour.
+- **Browser version:** needs no server.
+
+No photo is stored unless the grower opts in to the pilot's test set.
+
+**Monitoring,** weekly. Each item has an alert condition:
+- **Share of "not sure" answers.** On field photos this is 37% today; alert if it rises by 10 points.
+- **Officer disagreement rate.** Alert above 30% over the last 100 reviewed reports.
+- **Class mix:** a disease suddenly dominating may mean an outbreak or a broken camera.
+- **p95 latency.** Alert above 3 s.
+- **Errors.** Any crash or failed upload is logged by the CLI (`--log-file`).
+
+**Retraining triggers:**
+- an alert that persists for 2 weeks;
+- a new disease or pest in the region;
+- the start of each season, once new reviewed photos exist.
+
+A retrained model is promoted only if, on the frozen local test set and the original test sets, it passes
+`python scripts/check_all.py` and the R1–R14 acceptance tests via `surveillance/evaluate_all.py`, and does
+not regress any of them.
+
+**Rollback.** Every model version is a GitHub release with SHA-256 checksums. Returning to the previous
+version means pinning `download_weights.py` to the previous release tag; nothing else changes.
+
+**Risks.**
+
+| Risk | Likelihood | Mitigation |
+|---|---|---|
+| Wrong diagnosis leads to a wrong spray | Medium (about 29% of field answers are wrong) | Human review in phases 1–2; "not sure" warning; disclaimer on every result |
+| Domain shift: new region, camera or cultivar | High | Local test set before each phase; monitoring of "not sure" share and disagreement |
+| Pest model used outside tea | Prevented in code | Crop gate, documented in the user guide and model card |
+| Over-trust in forecasts | Medium | Simulated-data caveat in every forecast; not a decision input until validated |
+| Privacy | Low | No storage by default; consented, opt-in pilot data only |
+
 ## 10. Limitations and next steps
 
 1. **More real field photos**, the largest lever for classification and detection.
@@ -460,8 +544,9 @@ Conditions:
 bash surveillance/run_experiments.sh                                       # all detection/segmentation/generative runs
 .\.venv-train\Scripts\python -m surveillance.progression
 .\.venv-train\Scripts\python -m surveillance.convviz
-.\.venv-train\Scripts\python -m surveillance.evaluate_all
-.\.venv-train\Scripts\python -m pytest fundamentals\tests surveillance\tests
+.\.venv-train\Scripts\python -m surveillance.tune_thresholds         # detection thresholds, validation only
+.\.venv-train\Scripts\python -m surveillance.evaluate_all            # includes confusion matrices and failure cases
+.\.venv-train\Scripts\python scripts\check_all.py --e2e               # build check and every test suite, one command
 ```
 
 Hardware used: one RTX 3050 Laptop GPU (6 GB) and its CPU. Every script fixes its random seeds; exact

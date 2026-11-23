@@ -72,6 +72,8 @@ red overlay = damaged tissue, blue boxes = diseased leaves, orange boxes = pest 
 Options:
 - `--only classify,segment` runs only some components (`classify`, `detect`, `pests`, `segment`, `forecast`).
 - `--device cpu` forces the CPU.
+- `--log-file run.log` writes a timestamped log (settings, every photo's result, any error); `--verbose`
+  also shows it on the screen. Every run saves its settings to `<out>\run_config.json`.
 - `--detector fasterrcnn` uses Faster R-CNN for the diseased-leaf boxes: more accurate on field photos
   (mAP@0.5 0.61 vs 0.49) but about twice as slow. The default is RetinaNet.
 - `--history field_history.csv` adds the 7-day severity forecast (below).
@@ -79,7 +81,8 @@ Options:
   The pest model was trained on tea only; on other crops it mistook disease spots for pests in 89% of
   test photos, so without `--crop tea` it is skipped and the report says why.
 
-**Exit codes** (for scripts and schedulers): `0` no alerts, `2` at least one alert, `1` error.
+**Exit codes** (for scripts and schedulers): `0` no alerts, `2` at least one alert, `1` error. A photo that
+cannot be read is logged and skipped; the rest of the batch is still analysed, and the exit code is `1`.
 
 ### Forecast from a field history
 
@@ -126,7 +129,7 @@ Every 15th frame is analysed; annotated frames go to `reports\walk_frames\` and 
 .\.venv-train\Scripts\python -m surveillance.prepare_data       # detection + lesion data
 bash surveillance/run_experiments.sh                            # train and evaluate everything (GPU, hours)
 .\.venv-train\Scripts\python -m surveillance.evaluate_all       # the evaluation package
-.\.venv-train\Scripts\python -m pytest fundamentals\tests surveillance\tests
+python scripts\check_all.py --e2e                                  # build check + every test suite, one command
 ```
 
 ## 7. Responsible use

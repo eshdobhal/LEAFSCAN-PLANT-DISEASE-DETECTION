@@ -48,7 +48,7 @@ LeafScan Surveillance turns a phone photo (or a scouting video) into:
 | R11 | Cheap to host | web app ≤ 1 GB RAM; full pipeline ≤ 2.5 GB RAM | `surveillance/evaluate_all.py` |
 | R12 | Explainable | Grad-CAM evidence maps available for the classifier | `surveillance/convviz.py` |
 | R13 | Safe use | "not sure" warning below 80%; disclaimer on every result; no photo stored | `Flask Deployed App/tests/` (68 tests, 3 of them for exactly this) |
-| R14 | Reproducible | pinned dependencies, fixed seeds, one-command test suites, documented data splits | CI + `README.md` |
+| R14 | Reproducible | pinned dependencies, fixed seeds, one-command test suites, documented data splits | `pyproject.toml`, `scripts/check_all.py`, CI, `README.md` |
 
 ## 4. Deployment constraints
 
@@ -73,4 +73,4 @@ LeafScan Surveillance turns a phone photo (or a scouting video) into:
 | 7. Main product: classify, segment, detect pests, estimate progression; RetinaNet + ResNet; 2D/3D conv visuals | `surveillance/pipeline.py`, `surveillance/cli.py`, `surveillance/convviz.py` | `surveillance/results/conv_*` |
 | 8. Benchmark classification, segmentation, instance analysis, detection (R-CNN family, YOLO, ResNet, GoogLeNet, RetinaNet) | `training/train_hybrid.py --arch`, `surveillance/detection.py`, `surveillance/segmentation.py` | `surveillance/results/evaluation.json` |
 | 9. RNN/LSTM progression, GAN/VAE augmentation, latent space, step/sigmoid/tanh | `surveillance/progression.py`, `surveillance/generative.py`, `fundamentals/experiments/sandbox.py` | `surveillance/results/progression_*`, `generative_*` |
-| 10. Integrated, validated application: macro F1, mAP, IoU, calibration, latency, robustness, error analysis, limits | `surveillance/evaluate_all.py`, [TECHNICAL_REPORT.md](TECHNICAL_REPORT.md) | `surveillance/results/EVALUATION_SUMMARY.md` |
+| 10. Integrated, validated application: macro F1, mAP, IoU, calibration, latency, robustness, error analysis, limits | `surveillance/evaluate_all.py`, `surveillance/failure_cases.py`, [TECHNICAL_REPORT.md](TECHNICAL_REPORT.md) (§7.5 confusion and failures, §9.1 deployment plan) | `surveillance/results/EVALUATION_SUMMARY.md`, `confusion_*.png`, `failure_cases.json` |
