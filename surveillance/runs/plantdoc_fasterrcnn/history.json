@@ -103,5 +103,12 @@
   "val_mAP": 0.3828,
   "val_mAP50": 0.5434,
   "minutes": 6.44
+ },
+ {
+  "epoch": 16,
+  "loss": 0.1345,
+  "val_mAP": 0.3863,
+  "val_mAP50": 0.544,
+  "minutes": 6.43
  }
 ]

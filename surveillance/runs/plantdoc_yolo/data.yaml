@@ -1,0 +1,5 @@
+path: C:/Users/Esh/Downloads/Plant-Disease-Detection-main/Plant-Disease-Detection-main/data/plantdoc_det
+train: images/train
+val: images/val
+test: images/test
+names: {"0": "Apple Leaf", "1": "Apple Rust Leaf", "2": "Apple Scab Leaf", "3": "Bell Pepper Leaf", "4": "Bell Pepper Leaf Spot", "5": "Blueberry Leaf", "6": "Cherry Leaf", "7": "Corn Gray Leaf Spot", "8": "Corn Leaf Blight", "9": "Corn Rust Leaf", "10": "Grape Leaf", "11": "Grape Leaf Black Rot", "12": "Peach Leaf", "13": "Potato Leaf", "14": "Potato Leaf Early Blight", "15": "Potato Leaf Late Blight", "16": "Raspberry Leaf", "17": "Soybean Leaf", "18": "Squash Powdery Mildew Leaf", "19": "Strawberry Leaf", "20": "Tomato Early Blight Leaf", "21": "Tomato Leaf", "22": "Tomato Leaf Bacterial Spot", "23": "Tomato Leaf Late Blight", "24": "Tomato Leaf Mosaic Virus", "25": "Tomato Leaf Yellow Virus", "26": "Tomato Mold Leaf", "27": "Tomato Septoria Leaf Spot", "28": "Tomato Two Spotted Spider Mites Leaf"}

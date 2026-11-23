@@ -52,10 +52,11 @@ py -3.13 -m venv .venv-train
 .\.venv-train\Scripts\python -m pip install -r requirements-research.txt
 ```
 
-The detection, pest and segmentation models must be trained once (or their weights copied into
-`surveillance\runs\`); see section 6. `status` shows what is available:
+Download the trained detection, pest, segmentation and forecast models (about 320 MB, each checked by
+SHA-256) from the v1.1.0 release, or train them yourself (section 6). `status` shows what is available:
 
 ```powershell
+.\.venv-train\Scripts\python -m surveillance.download_weights        # add --all for the benchmark models
 .\.venv-train\Scripts\python -m surveillance.cli status
 ```
 
@@ -71,6 +72,8 @@ red overlay = damaged tissue, blue boxes = diseased leaves, orange boxes = pest 
 Options:
 - `--only classify,segment` runs only some components (`classify`, `detect`, `pests`, `segment`, `forecast`).
 - `--device cpu` forces the CPU.
+- `--detector fasterrcnn` uses Faster R-CNN for the diseased-leaf boxes: more accurate on field photos
+  (mAP@0.5 0.61 vs 0.49) but about twice as slow. The default is RetinaNet.
 - `--history field_history.csv` adds the 7-day severity forecast (below).
 - `--crop tea` turns on **pest detection** (and turns off the disease classifier, which does not know tea).
   The pest model was trained on tea only; on other crops it mistook disease spots for pests in 89% of
@@ -110,7 +113,7 @@ Every 15th frame is analysed; annotated frames go to `reports\walk_frames\` and 
 |---|---|---|
 | `classification.label`, `confidence` | Most likely condition and its probability | ~71% right on field photos; ~84% right when ≥ 80% sure |
 | `classification.low_confidence` | True below 80% | Retake the photo |
-| `detections` | Boxes around diseased leaves (PlantDoc model, 13 crops) | mAP@0.5 0.49: a locator; the classifier names the disease |
+| `detections` | Boxes around diseased leaves (PlantDoc model, 13 crops) | mAP@0.5 0.49 (RetinaNet) or 0.61 (`--detector fasterrcnn`): a locator; the classifier names the disease |
 | `pests` | Boxes around pest damage (only with `--crop tea`) | Trained on **tea** pests only; AP@0.5 0.96–0.98 on tea |
 | `segmentation.severity_percent`, `severity_grade_0_to_5` | Share of the leaf that is damaged | Grade within ±1 for 87.5% of test photos; unreliable for tiny rust pustules and plain-backdrop lab photos |
 | `forecast` | Severity for the next 7 days | Simulated training data: a guide only |

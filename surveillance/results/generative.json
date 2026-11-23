@@ -1,0 +1,108 @@
+{
+ "setup": {
+  "classes": [
+   "Apple___Apple_scab",
+   "Apple___healthy",
+   "Corn___Common_rust",
+   "Grape___Black_rot",
+   "Potato___Early_blight",
+   "Potato___Late_blight",
+   "Tomato___Bacterial_spot",
+   "Tomato___healthy"
+  ],
+  "minority_class": "Potato___Late_blight",
+  "minority_train_images": 25,
+  "other_train_images_per_class": 250,
+  "test_images_per_class": 100,
+  "image_size": 64
+ },
+ "training": {
+  "cvae_last": {
+   "epoch": 80,
+   "reconstruction": 299.98,
+   "kl": 60.13
+  },
+  "gan_last": {
+   "epoch": 150,
+   "loss_D": 0.654,
+   "loss_G": 2.815
+  },
+  "minutes": 2.2
+ },
+ "augmentation_study": {
+  "real only (imbalanced)": {
+   "accuracy": {
+    "mean": 0.9387,
+    "std": 0.0087
+   },
+   "macro_F1": {
+    "mean": 0.9326,
+    "std": 0.0106
+   },
+   "minority_recall": {
+    "mean": 0.5567,
+    "std": 0.0573
+   }
+  },
+  "+ oversampling (repeat the 25)": {
+   "accuracy": {
+    "mean": 0.9571,
+    "std": 0.0122
+   },
+   "macro_F1": {
+    "mean": 0.9546,
+    "std": 0.0134
+   },
+   "minority_recall": {
+    "mean": 0.7033,
+    "std": 0.0713
+   }
+  },
+  "+ classic augmentation": {
+   "accuracy": {
+    "mean": 0.9392,
+    "std": 0.0075
+   },
+   "macro_F1": {
+    "mean": 0.9336,
+    "std": 0.0089
+   },
+   "minority_recall": {
+    "mean": 0.57,
+    "std": 0.0432
+   }
+  },
+  "+ 225 CVAE samples": {
+   "accuracy": {
+    "mean": 0.9471,
+    "std": 0.0101
+   },
+   "macro_F1": {
+    "mean": 0.942,
+    "std": 0.0116
+   },
+   "minority_recall": {
+    "mean": 0.6033,
+    "std": 0.0618
+   }
+  },
+  "+ 225 GAN samples": {
+   "accuracy": {
+    "mean": 0.9396,
+    "std": 0.0095
+   },
+   "macro_F1": {
+    "mean": 0.9343,
+    "std": 0.0116
+   },
+   "minority_recall": {
+    "mean": 0.59,
+    "std": 0.0735
+   }
+  }
+ },
+ "synthetic_recognised_as_minority": {
+  "CVAE": 0.0,
+  "GAN": 0.0
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "mAP": 0.4639,
+ "mAP50": 0.6071,
+ "mAP75": 0.5399,
+ "mAR100": 0.6957,
+ "cpu_latency_ms": 1068.9,
+ "parameters_M": 43.4,
+ "test_images": 236
+}

@@ -23,12 +23,15 @@ def main(argv=None):
     a.add_argument("--only", default="classify,detect,pests,segment,forecast", help="comma-separated components")
     a.add_argument("--device", default=None, help="cpu or cuda (default: cuda if available)")
     a.add_argument("--crop", default=None, help="crop in the photos; pest detection runs only for --crop tea")
+    a.add_argument("--detector", default="retinanet", choices=["retinanet", "fasterrcnn"],
+                   help="disease detector: retinanet (default, faster) or fasterrcnn (more accurate on PlantDoc)")
     v = sub.add_parser("video", help="analyse every Nth frame of a video")
     v.add_argument("video", type=Path)
     v.add_argument("--every", type=int, default=15)
     v.add_argument("--out", type=Path, default=Path("reports"))
     v.add_argument("--device", default=None)
     v.add_argument("--crop", default=None)
+    v.add_argument("--detector", default="retinanet", choices=["retinanet", "fasterrcnn"])
     sub.add_parser("status", help="which components have trained weights")
     args = ap.parse_args(argv)
 
@@ -39,7 +42,7 @@ def main(argv=None):
         return 0
     args.out.mkdir(parents=True, exist_ok=True)
     if args.cmd == "analyze":
-        s = Surveillance(tuple(args.only.split(",")), device=args.device, crop=args.crop)
+        s = Surveillance(tuple(args.only.split(",")), device=args.device, crop=args.crop, detector=args.detector)
         any_alert = False
         for photo in args.photos:
             report, annotated = s.analyze(photo, history_csv=args.history, name=photo.name)
@@ -56,7 +59,7 @@ def main(argv=None):
             any_alert |= bool(report.alerts)
         return 2 if any_alert else 0
     if args.cmd == "video":
-        s = Surveillance(device=args.device, crop=args.crop)
+        s = Surveillance(device=args.device, crop=args.crop, detector=args.detector)
         frames = args.out / f"{args.video.stem}_frames"
         frames.mkdir(parents=True, exist_ok=True)
         timeline = s.analyze_video(args.video, args.every, frames)

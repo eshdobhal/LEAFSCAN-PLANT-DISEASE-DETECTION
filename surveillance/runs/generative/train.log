@@ -1,0 +1,9 @@
+C:\Users\Esh\Downloads\Plant-Disease-Detection-main\Plant-Disease-Detection-main\surveillance\generative.py:120: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:837.)
+  rec_sum, kl_sum, n = rec_sum + float(rec) * len(xb), kl_sum + float(kl) * len(xb), n + len(xb)
+real only (imbalanced)             macro-F1 0.933  minority recall 0.557 +/- 0.057
++ oversampling (repeat the 25)     macro-F1 0.955  minority recall 0.703 +/- 0.071
++ classic augmentation             macro-F1 0.934  minority recall 0.570 +/- 0.043
++ 225 CVAE samples                 macro-F1 0.942  minority recall 0.603 +/- 0.062
++ 225 GAN samples                  macro-F1 0.934  minority recall 0.590 +/- 0.073
+{"CVAE": 0.0, "GAN": 0.0}

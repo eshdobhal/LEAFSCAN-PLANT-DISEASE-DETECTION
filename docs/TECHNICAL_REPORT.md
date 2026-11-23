@@ -19,7 +19,9 @@ Behind it sit:
 - sequence and generative models;
 - an evaluation package that measures everything the brief names.
 
-**Verdict.** ⟪PENDING:verdict⟫
+**Verdict.** **12 of the 14 acceptance tests pass.** Both failures concern lesion-level precision: lesion
+IoU is 0.581 against a target of 0.60, and lesion-count F1 is 0.29 against 0.50. The decision (§9) is a
+conditional go as a scouting aid, not as a lesion counter.
 
 | Document | Contents |
 |---|---|
@@ -152,16 +154,28 @@ test split.
 | Dataset | Model | mAP@[.5:.95] | mAP@0.5 | Pest AP@0.5 (mite / bug) | CPU ms / photo | Params |
 |---|---|---:|---:|---:|---:|---:|
 | PlantDoc, 29 classes | **RetinaNet R50-FPN** | 0.376 | **0.489** | — | 458 | 36.9 M |
-| | Faster R-CNN R50-FPN | ⟪PENDING:pd_frcnn⟫ | | — | | |
-| | YOLOv8s | ⟪PENDING:pd_yolo⟫ | | — | | |
+| | **Faster R-CNN R50-FPN** | **0.464** | **0.607** | — | 1,069 | 43.4 M |
+| | YOLOv8s | 0.430 | 0.550 | — | **17** | 11.1 M |
 | Tea, 6 classes | **RetinaNet R50-FPN** | **0.710** | 0.988 | 0.964 / 0.975 | 284 | 36.5 M |
 | | Faster R-CNN R50-FPN | 0.694 | **0.989** | 0.972 / 0.977 | 935 | 43.3 M |
 | | YOLOv8s | 0.696 | 0.985 | 0.958 / 0.976 | **34** | 11.1 M |
 
-On tea, the three detectors are within 1.6 mAP points of each other. **The real difference is speed:**
-YOLOv8s is 8× faster than RetinaNet on a CPU. It is not shipped because its licence (AGPL-3.0) conflicts
-with the deployment constraint. RetinaNet is shipped: it is the most accurate at strict IoU and it is
-Apache/BSD-licensed. **R-CNN and Fast R-CNN** are covered by Faster R-CNN, which replaces their external
+**On PlantDoc, Faster R-CNN wins clearly:** mAP@0.5 0.607, against 0.550 for YOLOv8s and 0.489 for
+RetinaNet. Its region-proposal stage helps with the many small, similar leaves in cluttered web photos. **On
+tea, the three are within 1.6 mAP points,** and the real difference is speed: YOLOv8s runs at 17–34 ms per
+photo on a CPU, RetinaNet at 284–458 ms and Faster R-CNN at 935–1,069 ms.
+
+**What ships.** RetinaNet is the default because:
+- the brief specifies "YOLO or RetinaNet with ResNet" for the product;
+- it passes R4;
+- it is the most accurate detector on tea at strict IoU;
+- it is 2.3× faster than Faster R-CNN.
+
+Faster R-CNN is available with `--detector fasterrcnn`. YOLOv8s would be the fastest choice, but its
+AGPL-3.0 licence conflicts with the deployment constraint, so it remains a benchmark.
+
+**Lesson.** Had the brief not fixed the detector family, the evidence here favours Faster R-CNN for disease
+detection. **R-CNN and Fast R-CNN** are covered by Faster R-CNN, which replaces their external
 region proposals (selective search) with a learned region-proposal network. Their two-stage design,
 proposals followed by classification of pooled regions, is the "two-stage" row here. The one-stage designs
 are RetinaNet (focal loss against easy-background imbalance) and YOLO.
@@ -229,7 +243,35 @@ Setup: potato late blight is cut to 25 training photos while 7 other classes kee
 then trained five ways (3 seeds each): real only, + oversampling, + classic augmentation, + 225 VAE
 leaves, and + 225 GAN leaves.
 
-⟪PENDING:generative⟫
+| Training set (3 seeds) | Macro F1 | Late-blight recall |
+|---|---:|---:|
+| Real only (imbalanced) | 0.933 | 0.557 ± 0.057 |
+| **+ oversampling** | **0.955** | **0.703 ± 0.071** |
+| + classic augmentation | 0.934 | 0.570 ± 0.043 |
+| + 225 VAE leaves | 0.942 | 0.603 ± 0.062 |
+| + 225 GAN leaves | 0.934 | 0.590 ± 0.073 |
+
+**Synthetic leaves did not beat simply repeating the 25 real photos.** The VAE and GAN gains (+3–5 points)
+are within one standard deviation, while oversampling adds 15 points.
+
+The figures show why:
+- **Classifier check.** A classifier trained on real photos recognises 0% of the synthetic leaves as late
+  blight.
+- **VAE samples** (`generative_minority_comparison.png`) are blurry leaf shapes without lesions: the pixel
+  reconstruction loss averages out exactly the small dark lesions that define the disease.
+- **The conditional GAN mode-collapsed** on the rare class: every one of its late-blight samples is the
+  same image, a classic failure with 25 examples.
+- **Latent space** (`generative_latent_space.png`, PCA and t-SNE of the VAE means of test leaves): the
+  codes still cluster by class although the VAE is conditioned on the class. Some class information leaks
+  into the latent code instead of being carried by the label. Interpolating between two leaves changes the
+  lighting and background colour smoothly
+  (`generative_interpolation.png`).
+
+**Conclusion.** With a few dozen photos of a rare disease, oversampling is the cheap, effective baseline.
+Generative augmentation needs more data per class, or stronger models (diffusion, or a generator
+pre-trained on many leaves), before it pays off.
+
+![Augmentation study](../surveillance/results/generative_augmentation.png)
 
 ### 5.3 Step, sigmoid and tanh
 
@@ -272,18 +314,67 @@ Expected calibration error (15 bins) on field photos, before and after **tempera
 temperature T is fitted on validation by minimising negative log-likelihood. The fitting code was first
 checked on deliberately mis-calibrated scores, where it recovered T = 2.98, 1.00 and 0.50 as designed.
 
-⟪PENDING:calibration⟫
+| Model | Field ECE, raw | After T fitted on field validation | With T fitted on mixed lab + field validation |
+|---|---:|---:|---:|
+| **CAFormer ensemble (shipped)** | **0.072** | 0.085 (T 0.98) | 0.153 (T 0.80) |
+| CAFormer-S18 224 | 0.118 | 0.093 (T 1.04) | 0.198 |
+| CAFormer-S18 288 | 0.138 | 0.132 (T 1.05) | 0.212 |
+| ResNet-50 | 0.097 | **0.074** (T 1.02) | 0.163 |
+| GoogLeNet | 0.114 | 0.092 (T 0.93) | 0.121 |
+
+On lab photos every model is under-confident: lab ECE is about 0.10, falling to 0.003–0.006 after a lab-fitted
+temperature. That is the effect of label smoothing on photos the models find easy.
+
+**Two findings:**
+1. **The calibration set must match the deployment domain.** The first version of the package fitted one
+   temperature on mixed validation photos, three-quarters of them lab photos. It learned to sharpen
+   (T ≈ 0.8), and field calibration got about twice as bad. The product sees field photos, so the
+   temperature is fitted on field validation photos, and lab photos get their own.
+2. **The shipped ensemble is already well calibrated on field photos.** Its raw ECE is 0.072, and
+   averaging two networks and two views softens over-confidence. Its fitted temperature is ≈ 1. The small
+   rise to 0.085 is within the noise of a 225-photo, 15-bin estimate. R3 passes either way.
+
+![Reliability diagrams](../surveillance/results/eval_reliability.png)
+
+Two bugs were found by this package and fixed with tests:
+- temperature fitting received inference-mode tensors that autograd refused;
+- an unconstrained T could overshoot below zero when nearly every prediction was right. T is now
+  exp(log T).
 
 ### 7.2 Robustness
 
 Shipped ensemble on the 225 field photos under 16 corruptions: Gaussian noise and blur at three
 levels; brightness, contrast, JPEG quality, rotation and grey-square occlusion at two each.
 
-⟪PENDING:robustness⟫
+| Corruption (level) | Accuracy | | Corruption (level) | Accuracy |
+|---|---:|---|---|---:|
+| none | **71.1%** | | contrast ×0.5 / ×1.5 | 68.9% / 72.4% |
+| noise σ 0.05 / 0.1 / 0.2 | 69.8% / 66.7% / 58.7% | | JPEG quality 20 / 8 | 68.9% / 62.7% |
+| blur 1 / 2 / 4 | 70.2% / 67.1% / 57.8% | | rotation 30° / 90° | 72.0% / 70.2% |
+| brightness ×0.5 / ×1.5 | 69.8% / 71.1% | | grey square 25% / 50% | 71.6% / 68.4% |
+
+Mild phone-photo damage (noise σ 0.05, blur radius 1, brightness ×0.5 or ×1.5, JPEG quality 20) costs at most **2.2 points** (71.1% → 68.9%). Rotation, contrast and a grey square over 25% of the photo cost nothing. Heavy noise (σ 0.2) and heavy blur (radius 4) bring it down to 58–59%, and JPEG quality 8 to 63%. The model is most sensitive to losing fine texture (noise, blur, heavy compression),
+which is consistent with spots and rings being its main evidence when it is not reading the backdrop.
+
+![Robustness](../surveillance/results/eval_robustness.png)
 
 ### 7.3 Latency and memory (CPU, 4 threads)
 
-⟪PENDING:deployment⟫
+Each measurement runs in a fresh process on a laptop CPU limited to 4 threads.
+
+| What | Median per photo | Peak memory | Target |
+|---|---:|---:|---|
+| Web app `/api/predict` (ensemble + TTA) | **194 ms** | **687 MB** | ≤ 1 s; ≤ 1 GB |
+| CLI pipeline, all five components | **1.36 s** | **1.74 GB** | ≤ 3 s; ≤ 2.5 GB |
+
+The pipeline's components are timed as follows:
+- classify: 200 ms;
+- detect: 337 ms (RetinaNet; Faster R-CNN adds about 0.6 s);
+- pests: 319 ms;
+- segment: 498 ms;
+- forecast: 1 ms.
+
+The browser version needs no server at all.
 
 ### 7.4 Error analysis
 
@@ -317,20 +408,38 @@ levels; brightness, contrast, JPEG quality, rotation and grey-square occlusion a
 |---|---|---|---|
 | R1 | lab macro recall ≥ 95% | 99.53% | **PASS** |
 | R2 | field accuracy ≥ 65% and macro F1 ≥ 0.60 | 71.11%, 0.693 | **PASS** |
-| R3 | accuracy ≥ 80% when ≥ 80% sure; ECE ≤ 0.10 after scaling | 83.7%; ⟪PENDING:r3⟫ | ⟪PENDING:r3_result⟫ |
-| R4 | PlantDoc detection mAP@0.5 ≥ 0.40 | 0.489 (RetinaNet) | **PASS** |
+| R3 | accuracy ≥ 80% when ≥ 80% sure; ECE ≤ 0.10 after scaling | 83.7%; ECE 0.085 (raw 0.072), field-fitted T | **PASS** |
+| R4 | PlantDoc detection mAP@0.5 ≥ 0.40 | 0.489 (RetinaNet); 0.607 (Faster R-CNN) | **PASS** |
 | R5 | each pest AP@0.5 ≥ 0.50 (tea) | 0.964, 0.975 | **PASS** |
 | R6 | lesion IoU ≥ 0.60; grade within ±1 for ≥ 85% | IoU **0.581**; 87.5% | **FAIL** (IoU 0.02 short) |
 | R7 | lesion F1 ≥ 0.50 at IoU 0.5 | **0.290** | **FAIL** |
 | R8 | LSTM 7-day MAE ≥ 30% below persistence; alert F1 ≥ 0.70 | 64% lower; 0.744 | **PASS** (simulated data) |
-| R9 | accuracy drop ≤ 15 points under mild corruptions | ⟪PENDING:r9⟫ | ⟪PENDING:r9_result⟫ |
-| R10 | classifier ≤ 1 s; full pipeline ≤ 3 s (4-thread CPU) | ⟪PENDING:r10⟫ | ⟪PENDING:r10_result⟫ |
-| R11 | web app ≤ 1 GB; full pipeline ≤ 2.5 GB | ⟪PENDING:r11⟫ | ⟪PENDING:r11_result⟫ |
+| R9 | accuracy drop ≤ 15 points under mild corruptions | largest drop 2.2 points (JPEG 20) | **PASS** |
+| R10 | classifier ≤ 1 s; full pipeline ≤ 3 s (4-thread CPU) | 0.19–0.20 s; 1.36 s | **PASS** |
+| R11 | web app ≤ 1 GB; full pipeline ≤ 2.5 GB | 687 MB; 1.74 GB | **PASS** |
 | R12 | Grad-CAM available | `convviz.py`, figure above | **PASS** |
-| R13 | "not sure" warning, disclaimers, no storage | ⟪PENDING:r13⟫ | ⟪PENDING:r13_result⟫ |
+| R13 | "not sure" warning, disclaimers, no storage | warning, disclaimer on every result and in the API, nothing written to disk: 3 dedicated tests, 68/68 app tests pass | **PASS** |
 | R14 | pinned dependencies, seeds, one-command tests, documented splits | `requirements*.txt`, seeds in every script, CI, DATASET_CARD | **PASS** |
 
-**Decision.** ⟪PENDING:decision⟫
+**Decision: conditional go, as a scouting aid.**
+
+What meets its target and may be used, always with a person deciding:
+- classification with honest confidence;
+- locating diseased leaves;
+- tea pest detection;
+- severity graded 0–5;
+- the 7-day outlook, as a guide.
+
+Conditions:
+1. **Lesion counts are approximate** (R7 failed). Reports lead with damaged area and grade, which are
+   reliable to ±1 grade for 87.5% of photos.
+2. **Lesion boundaries are 2 IoU points short** (R6). Severity percentages should be read as ±5 points,
+   which is the measured error.
+3. **Pest detection only on tea,** enforced in code.
+4. **The forecaster stays a guide** until it is validated on real season-long data.
+5. **Re-measure on a local test set** before deploying in a new region.
+
+**No-go:** lesion counting as a decision input, pest detection on other crops, and any automatic spraying.
 
 ## 10. Limitations and next steps
 

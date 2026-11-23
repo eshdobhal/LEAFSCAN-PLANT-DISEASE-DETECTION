@@ -1,0 +1,1264 @@
+{
+ "note": "lab = 2,000 random PlantVillage test photos (leaf-grouped split); field = all 225 PlantDoc test photos",
+ "classification": {
+  "CAFormer-S18 224": {
+   "temperature": 1.039,
+   "temperature_fitted_on_mixed_validation": 0.832,
+   "temperature_fitted_on_lab_validation": 0.508,
+   "field": {
+    "accuracy": 0.6844,
+    "macro_F1": 0.6662,
+    "macro_recall": 0.6776,
+    "ECE": 0.118,
+    "ECE_after_temperature_scaling": 0.0933,
+    "ECE_with_mixed_validation_temperature": 0.1977
+   },
+   "lab": {
+    "accuracy": 0.9955,
+    "macro_F1": 0.9948,
+    "macro_recall": 0.9967,
+    "ECE": 0.0978,
+    "ECE_after_temperature_scaling": 0.0045,
+    "ECE_with_mixed_validation_temperature": 0.0332
+   }
+  },
+  "CAFormer-S18 288": {
+   "temperature": 1.05,
+   "temperature_fitted_on_mixed_validation": 0.837,
+   "temperature_fitted_on_lab_validation": 0.084,
+   "field": {
+    "accuracy": 0.6844,
+    "macro_F1": 0.662,
+    "macro_recall": 0.6782,
+    "ECE": 0.1378,
+    "ECE_after_temperature_scaling": 0.1322,
+    "ECE_with_mixed_validation_temperature": 0.2123
+   },
+   "lab": {
+    "accuracy": 0.997,
+    "macro_F1": 0.9957,
+    "macro_recall": 0.9972,
+    "ECE": 0.0963,
+    "ECE_after_temperature_scaling": 0.003,
+    "ECE_with_mixed_validation_temperature": 0.0323
+   }
+  },
+  "CAFormer ensemble (shipped)": {
+   "temperature": 0.981,
+   "temperature_fitted_on_mixed_validation": 0.798,
+   "temperature_fitted_on_lab_validation": 0.032,
+   "field": {
+    "accuracy": 0.7111,
+    "macro_F1": 0.6927,
+    "macro_recall": 0.7036,
+    "ECE": 0.0724,
+    "ECE_after_temperature_scaling": 0.085,
+    "ECE_with_mixed_validation_temperature": 0.1535
+   },
+   "lab": {
+    "accuracy": 0.997,
+    "macro_F1": 0.9957,
+    "macro_recall": 0.9972,
+    "ECE": 0.0976,
+    "ECE_after_temperature_scaling": 0.003,
+    "ECE_with_mixed_validation_temperature": 0.0235
+   }
+  },
+  "ResNet-50": {
+   "temperature": 1.019,
+   "temperature_fitted_on_mixed_validation": 0.818,
+   "temperature_fitted_on_lab_validation": 0.459,
+   "field": {
+    "accuracy": 0.7067,
+    "macro_F1": 0.6983,
+    "macro_recall": 0.701,
+    "ECE": 0.0972,
+    "ECE_after_temperature_scaling": 0.0745,
+    "ECE_with_mixed_validation_temperature": 0.1633
+   },
+   "lab": {
+    "accuracy": 0.9955,
+    "macro_F1": 0.9945,
+    "macro_recall": 0.9954,
+    "ECE": 0.0997,
+    "ECE_after_temperature_scaling": 0.0035,
+    "ECE_with_mixed_validation_temperature": 0.0304
+   }
+  },
+  "GoogLeNet": {
+   "temperature": 0.929,
+   "temperature_fitted_on_mixed_validation": 0.762,
+   "temperature_fitted_on_lab_validation": 0.609,
+   "field": {
+    "accuracy": 0.72,
+    "macro_F1": 0.7083,
+    "macro_recall": 0.7098,
+    "ECE": 0.1135,
+    "ECE_after_temperature_scaling": 0.0922,
+    "ECE_with_mixed_validation_temperature": 0.1213
+   },
+   "lab": {
+    "accuracy": 0.966,
+    "macro_F1": 0.9581,
+    "macro_recall": 0.9656,
+    "ECE": 0.1162,
+    "ECE_after_temperature_scaling": 0.0065,
+    "ECE_with_mixed_validation_temperature": 0.0278
+   }
+  }
+ },
+ "robustness": [
+  {
+   "corruption": "none",
+   "level": null,
+   "accuracy": 0.7111,
+   "macro_F1": 0.6927
+  },
+  {
+   "corruption": "gaussian noise",
+   "level": 0.05,
+   "accuracy": 0.6978,
+   "macro_F1": 0.6842
+  },
+  {
+   "corruption": "gaussian noise",
+   "level": 0.1,
+   "accuracy": 0.6667,
+   "macro_F1": 0.6562
+  },
+  {
+   "corruption": "gaussian noise",
+   "level": 0.2,
+   "accuracy": 0.5867,
+   "macro_F1": 0.5737
+  },
+  {
+   "corruption": "blur",
+   "level": 1,
+   "accuracy": 0.7022,
+   "macro_F1": 0.6885
+  },
+  {
+   "corruption": "blur",
+   "level": 2,
+   "accuracy": 0.6711,
+   "macro_F1": 0.669
+  },
+  {
+   "corruption": "blur",
+   "level": 4,
+   "accuracy": 0.5778,
+   "macro_F1": 0.5827
+  },
+  {
+   "corruption": "brightness",
+   "level": 0.5,
+   "accuracy": 0.6978,
+   "macro_F1": 0.6767
+  },
+  {
+   "corruption": "brightness",
+   "level": 1.5,
+   "accuracy": 0.7111,
+   "macro_F1": 0.6962
+  },
+  {
+   "corruption": "contrast",
+   "level": 0.5,
+   "accuracy": 0.6889,
+   "macro_F1": 0.673
+  },
+  {
+   "corruption": "contrast",
+   "level": 1.5,
+   "accuracy": 0.7244,
+   "macro_F1": 0.7083
+  },
+  {
+   "corruption": "JPEG quality",
+   "level": 20,
+   "accuracy": 0.6889,
+   "macro_F1": 0.6881
+  },
+  {
+   "corruption": "JPEG quality",
+   "level": 8,
+   "accuracy": 0.6267,
+   "macro_F1": 0.6348
+  },
+  {
+   "corruption": "rotation",
+   "level": 30,
+   "accuracy": 0.72,
+   "macro_F1": 0.7002
+  },
+  {
+   "corruption": "rotation",
+   "level": 90,
+   "accuracy": 0.7022,
+   "macro_F1": 0.6849
+  },
+  {
+   "corruption": "occlusion (grey square)",
+   "level": 0.25,
+   "accuracy": 0.7156,
+   "macro_F1": 0.6953
+  },
+  {
+   "corruption": "occlusion (grey square)",
+   "level": 0.5,
+   "accuracy": 0.6844,
+   "macro_F1": 0.6728
+  }
+ ],
+ "detection": {
+  "plantdoc_fasterrcnn": {
+   "mAP": 0.4639,
+   "mAP50": 0.6071,
+   "mAP75": 0.5399,
+   "mAR100": 0.6957,
+   "AP_per_class": {
+    "Apple Leaf": 0.4701,
+    "Apple Rust Leaf": 0.6487,
+    "Apple Scab Leaf": 0.4888,
+    "Bell Pepper Leaf": 0.1985,
+    "Bell Pepper Leaf Spot": 0.3368,
+    "Blueberry Leaf": 0.4623,
+    "Cherry Leaf": 0.5645,
+    "Corn Gray Leaf Spot": 0.2466,
+    "Corn Leaf Blight": 0.7156,
+    "Corn Rust Leaf": 0.7845,
+    "Grape Leaf": 0.7503,
+    "Grape Leaf Black Rot": 0.7824,
+    "Peach Leaf": 0.7684,
+    "Potato Leaf Early Blight": 0.252,
+    "Potato Leaf Late Blight": 0.2069,
+    "Raspberry Leaf": 0.6949,
+    "Soybean Leaf": 0.5429,
+    "Squash Powdery Mildew Leaf": 0.636,
+    "Strawberry Leaf": 0.7885,
+    "Tomato Early Blight Leaf": 0.2314,
+    "Tomato Leaf": 0.2271,
+    "Tomato Leaf Bacterial Spot": 0.1644,
+    "Tomato Leaf Late Blight": 0.4574,
+    "Tomato Leaf Mosaic Virus": 0.2246,
+    "Tomato Leaf Yellow Virus": 0.3583,
+    "Tomato Mold Leaf": 0.1818,
+    "Tomato Septoria Leaf Spot": 0.3408
+   },
+   "cpu_latency_ms": 1068.9,
+   "parameters_M": 43.4,
+   "test_images": 236
+  },
+  "plantdoc_retinanet": {
+   "mAP": 0.3756,
+   "mAP50": 0.489,
+   "mAP75": 0.4361,
+   "mAR100": 0.7697,
+   "AP_per_class": {
+    "Apple Leaf": 0.4386,
+    "Apple Rust Leaf": 0.4644,
+    "Apple Scab Leaf": 0.2903,
+    "Bell Pepper Leaf": 0.1067,
+    "Bell Pepper Leaf Spot": 0.1295,
+    "Blueberry Leaf": 0.3744,
+    "Cherry Leaf": 0.3526,
+    "Corn Gray Leaf Spot": 0.1945,
+    "Corn Leaf Blight": 0.6312,
+    "Corn Rust Leaf": 0.8275,
+    "Grape Leaf": 0.7122,
+    "Grape Leaf Black Rot": 0.6366,
+    "Peach Leaf": 0.714,
+    "Potato Leaf": null,
+    "Potato Leaf Early Blight": 0.136,
+    "Potato Leaf Late Blight": 0.1608,
+    "Raspberry Leaf": 0.5023,
+    "Soybean Leaf": 0.4435,
+    "Squash Powdery Mildew Leaf": 0.6755,
+    "Strawberry Leaf": 0.7109,
+    "Tomato Early Blight Leaf": 0.1815,
+    "Tomato Leaf": 0.2705,
+    "Tomato Leaf Bacterial Spot": 0.1113,
+    "Tomato Leaf Late Blight": 0.2852,
+    "Tomato Leaf Mosaic Virus": 0.1509,
+    "Tomato Leaf Yellow Virus": 0.2196,
+    "Tomato Mold Leaf": 0.0569,
+    "Tomato Septoria Leaf Spot": 0.364
+   },
+   "cpu_latency_ms": 457.8,
+   "parameters_M": 36.9,
+   "test_images": 236
+  },
+  "plantdoc_yolo": {
+   "mAP": 0.4301,
+   "mAP50": 0.5498,
+   "mAP75": 0.4969,
+   "mAR100": 0.5958,
+   "AP_per_class": {
+    "Apple Leaf": 0.5457,
+    "Apple Rust Leaf": 0.6275,
+    "Apple Scab Leaf": 0.4784,
+    "Bell Pepper Leaf": 0.2832,
+    "Bell Pepper Leaf Spot": 0.1891,
+    "Blueberry Leaf": 0.4987,
+    "Cherry Leaf": 0.1481,
+    "Corn Gray Leaf Spot": 0.0579,
+    "Corn Leaf Blight": 0.6746,
+    "Corn Rust Leaf": 0.8597,
+    "Grape Leaf": 0.7676,
+    "Grape Leaf Black Rot": 0.6743,
+    "Peach Leaf": 0.4843,
+    "Potato Leaf": null,
+    "Potato Leaf Early Blight": 0.2788,
+    "Potato Leaf Late Blight": 0.2443,
+    "Raspberry Leaf": 0.6765,
+    "Soybean Leaf": 0.6338,
+    "Squash Powdery Mildew Leaf": 0.7127,
+    "Strawberry Leaf": 0.8527,
+    "Tomato Early Blight Leaf": 0.0911,
+    "Tomato Leaf": 0.2701,
+    "Tomato Leaf Bacterial Spot": 0.1299,
+    "Tomato Leaf Late Blight": 0.429,
+    "Tomato Leaf Mosaic Virus": 0.1207,
+    "Tomato Leaf Yellow Virus": 0.3511,
+    "Tomato Mold Leaf": 0.2295,
+    "Tomato Septoria Leaf Spot": 0.3036
+   },
+   "cpu_latency_ms": 17.2,
+   "parameters_M": 11.1,
+   "test_images": 236,
+   "weights": "yolov8s.pt"
+  },
+  "tea_fasterrcnn": {
+   "mAP": 0.6944,
+   "mAP50": 0.9892,
+   "mAP75": 0.8245,
+   "mAR100": 0.7492,
+   "AP_per_class": {
+    "black rot": 0.5809,
+    "leaf rust": 0.6752,
+    "red spider mite (pest)": 0.7748,
+    "tea mosquito bug (pest)": 0.6718,
+    "healthy tea leaf": 0.8192,
+    "white spot": 0.6446
+   },
+   "pest_mAP": 0.7233,
+   "pest_AP50": {
+    "red spider mite (pest)": 0.9718,
+    "tea mosquito bug (pest)": 0.9774
+   },
+   "cpu_latency_ms": 934.9,
+   "parameters_M": 43.3,
+   "test_images": 406
+  },
+  "tea_retinanet": {
+   "mAP": 0.7096,
+   "mAP50": 0.9883,
+   "mAP75": 0.8568,
+   "mAR100": 0.7663,
+   "AP_per_class": {
+    "black rot": 0.6608,
+    "leaf rust": 0.666,
+    "red spider mite (pest)": 0.7517,
+    "tea mosquito bug (pest)": 0.6484,
+    "healthy tea leaf": 0.8505,
+    "white spot": 0.6799
+   },
+   "pest_mAP": 0.7001,
+   "pest_AP50": {
+    "red spider mite (pest)": 0.9641,
+    "tea mosquito bug (pest)": 0.9751
+   },
+   "cpu_latency_ms": 283.7,
+   "parameters_M": 36.5,
+   "test_images": 406
+  },
+  "tea_yolo": {
+   "mAP": 0.6955,
+   "mAP50": 0.9846,
+   "mAP75": 0.8623,
+   "mAR100": 0.7406,
+   "AP_per_class": {
+    "black rot": 0.6224,
+    "leaf rust": 0.665,
+    "red spider mite (pest)": 0.7359,
+    "tea mosquito bug (pest)": 0.6499,
+    "healthy tea leaf": 0.8045,
+    "white spot": 0.6951
+   },
+   "pest_mAP": 0.6929,
+   "pest_AP50": {
+    "red spider mite (pest)": 0.9579,
+    "tea mosquito bug (pest)": 0.9755
+   },
+   "cpu_latency_ms": 33.7,
+   "parameters_M": 11.1,
+   "test_images": 406,
+   "weights": "yolov8s.pt"
+  }
+ },
+ "segmentation": {
+  "leafseg_deeplab": {
+   "IoU_lesion": 0.5814,
+   "Dice_lesion": 0.7353,
+   "pixel_accuracy": 0.9532,
+   "per_image_IoU_median": 0.7104,
+   "lesion_precision": 0.2732,
+   "lesion_recall": 0.3079,
+   "lesion_F1_at_IoU0.5": 0.2896,
+   "lesion_count_MAE": 2.61,
+   "severity_fraction_MAE": 0.0485,
+   "severity_grade_exact": 0.7159,
+   "severity_grade_within_1": 0.875,
+   "cpu_latency_ms": 526.4,
+   "parameters_M": 42.0,
+   "test_images": 88
+  },
+  "leafseg_fcn": {
+   "IoU_lesion": 0.5354,
+   "Dice_lesion": 0.6974,
+   "pixel_accuracy": 0.9478,
+   "per_image_IoU_median": 0.6483,
+   "lesion_precision": 0.2286,
+   "lesion_recall": 0.3556,
+   "lesion_F1_at_IoU0.5": 0.2783,
+   "lesion_count_MAE": 3.08,
+   "severity_fraction_MAE": 0.0545,
+   "severity_grade_exact": 0.7159,
+   "severity_grade_within_1": 0.8636,
+   "cpu_latency_ms": 428.4,
+   "parameters_M": 35.3,
+   "test_images": 88
+  },
+  "leafseg_maskrcnn": {
+   "mask_mAP": 0.2504,
+   "mask_mAP50": 0.5764,
+   "box_mAP": 0.2029,
+   "box_mAP50": 0.4404,
+   "cpu_latency_ms": 777.7,
+   "parameters_M": 45.9
+  }
+ },
+ "pest_out_of_domain": {
+  "threshold": 0.4,
+  "other_crops_photos": 236,
+  "other_crops_with_false_pest": 210,
+  "false_pest_rate_other_crops": 0.8898,
+  "tea_photos_with_pest": 259,
+  "tea_pest_photos_detected": 259,
+  "pest_photo_recall_tea": 1.0
+ },
+ "deployment": {
+  "leafseg_deeplab": {
+   "cpu_latency_ms": 526.4,
+   "parameters_M": 42.0,
+   "weights_MB_fp16": 80.3
+  },
+  "leafseg_fcn": {
+   "cpu_latency_ms": 428.4,
+   "parameters_M": 35.3,
+   "weights_MB_fp16": 67.5
+  },
+  "leafseg_maskrcnn": {
+   "cpu_latency_ms": 777.7,
+   "parameters_M": 45.9,
+   "weights_MB_fp16": 87.7
+  },
+  "plantdoc_fasterrcnn": {
+   "cpu_latency_ms": 1068.9,
+   "parameters_M": 43.4,
+   "weights_MB_fp16": 83.0
+  },
+  "plantdoc_retinanet": {
+   "cpu_latency_ms": 457.8,
+   "parameters_M": 36.9,
+   "weights_MB_fp16": 70.6
+  },
+  "plantdoc_yolo": {
+   "cpu_latency_ms": 17.2,
+   "parameters_M": 11.1,
+   "weights_MB_fp16": 21.5
+  },
+  "tea_fasterrcnn": {
+   "cpu_latency_ms": 934.9,
+   "parameters_M": 43.3,
+   "weights_MB_fp16": 82.8
+  },
+  "tea_retinanet": {
+   "cpu_latency_ms": 283.7,
+   "parameters_M": 36.5,
+   "weights_MB_fp16": 69.7
+  },
+  "tea_yolo": {
+   "cpu_latency_ms": 33.7,
+   "parameters_M": 11.1,
+   "weights_MB_fp16": 21.5
+  }
+ },
+ "pipeline_cpu_profile": {
+  "pipeline": {
+   "components": [
+    "classify",
+    "detect",
+    "pests",
+    "segment",
+    "forecast"
+   ],
+   "median_ms_per_component": {
+    "classify": 200.2,
+    "detect": 337.1,
+    "pests": 318.9,
+    "segment": 497.8,
+    "forecast": 1.2,
+    "total (all five)": 1355.2
+   },
+   "peak_memory_MB": 1777,
+   "memory_MB_at_end": 1761
+  },
+  "web_app": {
+   "median_request_ms": 193.7,
+   "peak_memory_MB": 687,
+   "memory_MB_at_end": 686
+  }
+ },
+ "reliability_field": {
+  "CAFormer-S18 224": [
+   [
+    [
+     0.30000001192092896,
+     1.0,
+     0.28215572237968445,
+     1
+    ],
+    [
+     0.36666667461395264,
+     0.20000000298023224,
+     0.36428457498550415,
+     5
+    ],
+    [
+     0.4333333671092987,
+     0.3333333432674408,
+     0.44337812066078186,
+     12
+    ],
+    [
+     0.5,
+     0.38461539149284363,
+     0.4973885715007782,
+     13
+    ],
+    [
+     0.5666666030883789,
+     0.3333333432674408,
+     0.5607597827911377,
+     9
+    ],
+    [
+     0.6333333253860474,
+     0.4444444477558136,
+     0.636106550693512,
+     9
+    ],
+    [
+     0.699999988079071,
+     0.5,
+     0.6989339590072632,
+     10
+    ],
+    [
+     0.7666666507720947,
+     0.4444444477558136,
+     0.7840140461921692,
+     9
+    ],
+    [
+     0.8333333134651184,
+     0.6666666865348816,
+     0.8445239663124084,
+     15
+    ],
+    [
+     0.8999999761581421,
+     0.8239436745643616,
+     0.8996468782424927,
+     142
+    ]
+   ],
+   [
+    [
+     0.30000001192092896,
+     0.5,
+     0.30004650354385376,
+     2
+    ],
+    [
+     0.36666667461395264,
+     0.20000000298023224,
+     0.36233827471733093,
+     5
+    ],
+    [
+     0.4333333671092987,
+     0.3333333432674408,
+     0.43479713797569275,
+     15
+    ],
+    [
+     0.5,
+     0.3636363744735718,
+     0.49134624004364014,
+     11
+    ],
+    [
+     0.5666666030883789,
+     0.5,
+     0.556022584438324,
+     10
+    ],
+    [
+     0.6333333253860474,
+     0.30000001192092896,
+     0.6342452764511108,
+     10
+    ],
+    [
+     0.699999988079071,
+     0.5714285969734192,
+     0.6925792694091797,
+     7
+    ],
+    [
+     0.7666666507720947,
+     0.4444444477558136,
+     0.762233316898346,
+     9
+    ],
+    [
+     0.8333333134651184,
+     0.6451612710952759,
+     0.8411106467247009,
+     31
+    ],
+    [
+     0.8999999761581421,
+     0.8560000061988831,
+     0.8813751935958862,
+     125
+    ]
+   ]
+  ],
+  "CAFormer-S18 288": [
+   [
+    [
+     0.1666666865348816,
+     0.0,
+     0.17985011637210846,
+     1
+    ],
+    [
+     0.30000001192092896,
+     0.0,
+     0.32187366485595703,
+     2
+    ],
+    [
+     0.36666667461395264,
+     0.0,
+     0.3766106367111206,
+     1
+    ],
+    [
+     0.4333333671092987,
+     0.25,
+     0.4330254793167114,
+     8
+    ],
+    [
+     0.5,
+     0.375,
+     0.5090706944465637,
+     8
+    ],
+    [
+     0.5666666030883789,
+     0.20000000298023224,
+     0.5642603635787964,
+     5
+    ],
+    [
+     0.6333333253860474,
+     0.5384615659713745,
+     0.6223240494728088,
+     13
+    ],
+    [
+     0.699999988079071,
+     0.4000000059604645,
+     0.689236044883728,
+     5
+    ],
+    [
+     0.7666666507720947,
+     0.625,
+     0.7809183597564697,
+     8
+    ],
+    [
+     0.8333333134651184,
+     0.2222222238779068,
+     0.8375589847564697,
+     18
+    ],
+    [
+     0.8999999761581421,
+     0.8333333134651184,
+     0.9011643528938293,
+     156
+    ]
+   ],
+   [
+    [
+     0.1666666865348816,
+     0.0,
+     0.1690361499786377,
+     1
+    ],
+    [
+     0.30000001192092896,
+     0.0,
+     0.30146515369415283,
+     2
+    ],
+    [
+     0.36666667461395264,
+     0.3333333432674408,
+     0.37806662917137146,
+     3
+    ],
+    [
+     0.4333333671092987,
+     0.25,
+     0.4269460141658783,
+     8
+    ],
+    [
+     0.5,
+     0.375,
+     0.4923650026321411,
+     8
+    ],
+    [
+     0.5666666030883789,
+     0.3571428656578064,
+     0.5763354897499084,
+     14
+    ],
+    [
+     0.6333333253860474,
+     0.6666666865348816,
+     0.6354163289070129,
+     6
+    ],
+    [
+     0.699999988079071,
+     0.6666666865348816,
+     0.703373908996582,
+     3
+    ],
+    [
+     0.7666666507720947,
+     0.2857142984867096,
+     0.7703441381454468,
+     14
+    ],
+    [
+     0.8333333134651184,
+     0.42424243688583374,
+     0.8449921607971191,
+     33
+    ],
+    [
+     0.8999999761581421,
+     0.8947368264198303,
+     0.8764002919197083,
+     133
+    ]
+   ]
+  ],
+  "CAFormer ensemble (shipped)": [
+   [
+    [
+     0.23333334922790527,
+     0.0,
+     0.24602746963500977,
+     2
+    ],
+    [
+     0.30000001192092896,
+     0.4000000059604645,
+     0.3190145492553711,
+     5
+    ],
+    [
+     0.36666667461395264,
+     0.5,
+     0.37317225337028503,
+     6
+    ],
+    [
+     0.4333333671092987,
+     0.4545454680919647,
+     0.4475841522216797,
+     11
+    ],
+    [
+     0.5,
+     0.5,
+     0.5090301036834717,
+     12
+    ],
+    [
+     0.5666666030883789,
+     0.4166666567325592,
+     0.5576639175415039,
+     12
+    ],
+    [
+     0.6333333253860474,
+     0.5,
+     0.6388174295425415,
+     12
+    ],
+    [
+     0.699999988079071,
+     0.5,
+     0.6944798231124878,
+     10
+    ],
+    [
+     0.7666666507720947,
+     0.7142857313156128,
+     0.7667728662490845,
+     14
+    ],
+    [
+     0.8333333134651184,
+     0.375,
+     0.844240665435791,
+     8
+    ],
+    [
+     0.8999999761581421,
+     0.8646616339683533,
+     0.8996096253395081,
+     133
+    ]
+   ],
+   [
+    [
+     0.23333334922790527,
+     0.0,
+     0.2509450912475586,
+     2
+    ],
+    [
+     0.30000001192092896,
+     0.3333333432674408,
+     0.3177315294742584,
+     3
+    ],
+    [
+     0.36666667461395264,
+     0.5,
+     0.3708316683769226,
+     8
+    ],
+    [
+     0.4333333671092987,
+     0.5,
+     0.4520213007926941,
+     10
+    ],
+    [
+     0.5,
+     0.4000000059604645,
+     0.5078049898147583,
+     10
+    ],
+    [
+     0.5666666030883789,
+     0.46666666865348816,
+     0.5622674822807312,
+     15
+    ],
+    [
+     0.6333333253860474,
+     0.625,
+     0.6386677026748657,
+     8
+    ],
+    [
+     0.699999988079071,
+     0.38461539149284363,
+     0.6948972940444946,
+     13
+    ],
+    [
+     0.7666666507720947,
+     0.7692307829856873,
+     0.7716156244277954,
+     13
+    ],
+    [
+     0.8333333134651184,
+     0.5714285969734192,
+     0.8347721695899963,
+     7
+    ],
+    [
+     0.8999999761581421,
+     0.845588207244873,
+     0.9083208441734314,
+     136
+    ]
+   ]
+  ],
+  "ResNet-50": [
+   [
+    [
+     0.1666666865348816,
+     0.0,
+     0.17677494883537292,
+     1
+    ],
+    [
+     0.23333334922790527,
+     0.5,
+     0.22067320346832275,
+     2
+    ],
+    [
+     0.30000001192092896,
+     0.0,
+     0.29951727390289307,
+     6
+    ],
+    [
+     0.36666667461395264,
+     0.1428571492433548,
+     0.37855952978134155,
+     7
+    ],
+    [
+     0.4333333671092987,
+     0.75,
+     0.4313584566116333,
+     4
+    ],
+    [
+     0.5,
+     0.3636363744735718,
+     0.4938502013683319,
+     11
+    ],
+    [
+     0.5666666030883789,
+     0.5,
+     0.5676856637001038,
+     12
+    ],
+    [
+     0.6333333253860474,
+     0.5,
+     0.6417191624641418,
+     12
+    ],
+    [
+     0.699999988079071,
+     0.4545454680919647,
+     0.6999068260192871,
+     11
+    ],
+    [
+     0.7666666507720947,
+     0.5909090638160706,
+     0.7654577493667603,
+     22
+    ],
+    [
+     0.8333333134651184,
+     0.7407407164573669,
+     0.8279009461402893,
+     27
+    ],
+    [
+     0.8999999761581421,
+     0.9207921028137207,
+     0.8999665379524231,
+     101
+    ],
+    [
+     0.9666666984558105,
+     0.7777777910232544,
+     0.941605806350708,
+     9
+    ]
+   ],
+   [
+    [
+     0.1666666865348816,
+     0.0,
+     0.173152357339859,
+     1
+    ],
+    [
+     0.23333334922790527,
+     0.3333333432674408,
+     0.23008830845355988,
+     3
+    ],
+    [
+     0.30000001192092896,
+     0.0,
+     0.3005473017692566,
+     5
+    ],
+    [
+     0.36666667461395264,
+     0.25,
+     0.3735228180885315,
+     8
+    ],
+    [
+     0.4333333671092987,
+     0.5,
+     0.4396252930164337,
+     4
+    ],
+    [
+     0.5,
+     0.4615384638309479,
+     0.4956878423690796,
+     13
+    ],
+    [
+     0.5666666030883789,
+     0.4000000059604645,
+     0.5670810341835022,
+     10
+    ],
+    [
+     0.6333333253860474,
+     0.6153846383094788,
+     0.635841429233551,
+     13
+    ],
+    [
+     0.699999988079071,
+     0.3529411852359772,
+     0.708249032497406,
+     17
+    ],
+    [
+     0.7666666507720947,
+     0.6800000071525574,
+     0.7782175540924072,
+     25
+    ],
+    [
+     0.8333333134651184,
+     0.8518518805503845,
+     0.8424729108810425,
+     27
+    ],
+    [
+     0.8999999761581421,
+     0.9139785170555115,
+     0.8947597742080688,
+     93
+    ],
+    [
+     0.9666666984558105,
+     0.8333333134651184,
+     0.9368398785591125,
+     6
+    ]
+   ]
+  ],
+  "GoogLeNet": [
+   [
+    [
+     0.10000000894069672,
+     0.0,
+     0.11156563460826874,
+     1
+    ],
+    [
+     0.1666666865348816,
+     0.75,
+     0.17487823963165283,
+     4
+    ],
+    [
+     0.23333334922790527,
+     0.1111111119389534,
+     0.23923318088054657,
+     9
+    ],
+    [
+     0.30000001192092896,
+     0.4000000059604645,
+     0.30307507514953613,
+     10
+    ],
+    [
+     0.36666667461395264,
+     0.5833333134651184,
+     0.3772898018360138,
+     12
+    ],
+    [
+     0.4333333671092987,
+     0.5789473652839661,
+     0.43429601192474365,
+     19
+    ],
+    [
+     0.5,
+     0.800000011920929,
+     0.49012070894241333,
+     20
+    ],
+    [
+     0.5666666030883789,
+     0.5333333611488342,
+     0.5747446417808533,
+     15
+    ],
+    [
+     0.6333333253860474,
+     0.5882353186607361,
+     0.6322479844093323,
+     17
+    ],
+    [
+     0.699999988079071,
+     0.800000011920929,
+     0.7006357312202454,
+     10
+    ],
+    [
+     0.7666666507720947,
+     0.8421052694320679,
+     0.7684617042541504,
+     19
+    ],
+    [
+     0.8333333134651184,
+     0.9130434989929199,
+     0.8355220556259155,
+     23
+    ],
+    [
+     0.8999999761581421,
+     0.8461538553237915,
+     0.9025121927261353,
+     39
+    ],
+    [
+     0.9666666984558105,
+     0.8888888955116272,
+     0.9573439359664917,
+     27
+    ]
+   ],
+   [
+    [
+     0.10000000894069672,
+     0.0,
+     0.1204807311296463,
+     1
+    ],
+    [
+     0.1666666865348816,
+     0.5,
+     0.16327589750289917,
+     2
+    ],
+    [
+     0.23333334922790527,
+     0.4285714328289032,
+     0.2415861040353775,
+     7
+    ],
+    [
+     0.30000001192092896,
+     0.30000001192092896,
+     0.30043789744377136,
+     10
+    ],
+    [
+     0.36666667461395264,
+     0.4285714328289032,
+     0.366494745016098,
+     7
+    ],
+    [
+     0.4333333671092987,
+     0.6470588445663452,
+     0.43763384222984314,
+     17
+    ],
+    [
+     0.5,
+     0.6800000071525574,
+     0.507992684841156,
+     25
+    ],
+    [
+     0.5666666030883789,
+     0.6000000238418579,
+     0.5712782144546509,
+     10
+    ],
+    [
+     0.6333333253860474,
+     0.5,
+     0.6411619186401367,
+     14
+    ],
+    [
+     0.699999988079071,
+     0.6428571343421936,
+     0.6917024850845337,
+     14
+    ],
+    [
+     0.7666666507720947,
+     0.7058823704719543,
+     0.7714136242866516,
+     17
+    ],
+    [
+     0.8333333134651184,
+     0.9411764740943909,
+     0.8400943279266357,
+     17
+    ],
+    [
+     0.8999999761581421,
+     0.8611111044883728,
+     0.9009169340133667,
+     36
+    ],
+    [
+     0.9666666984558105,
+     0.8958333134651184,
+     0.9610283374786377,
+     48
+    ]
+   ]
+  ]
+ }
+}

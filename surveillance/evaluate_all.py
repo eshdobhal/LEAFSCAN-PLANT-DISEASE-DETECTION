@@ -3,7 +3,8 @@
     python -m surveillance.evaluate_all
 
 1. Classification benchmark: CAFormer-S18 (224, 288, ensemble) vs ResNet-50 vs GoogLeNet: accuracy, macro F1,
-   macro recall, and expected calibration error (ECE) before/after temperature scaling (fitted on validation).
+   macro recall, and expected calibration error (ECE) before/after temperature scaling. Temperatures are fitted
+   on validation only, per domain (field, lab), plus once on mixed validation to show a mismatched fit.
 2. Robustness: accuracy and macro F1 of the shipped ensemble on field photos under 16 corruptions.
 3. Detection (mAP), segmentation (IoU, Dice, lesion F1, severity) and instance (mask mAP) summaries.
 4. Deployment: CPU latency, parameters, weight size and process memory for every component.
@@ -14,6 +15,7 @@ import json
 import os
 import sys
 import time
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -65,17 +67,19 @@ def ece(probs, y, bins=15):
 
 def fit_temperature(probs, y):
     """Temperature scaling: one scalar T dividing the log-probabilities, fitted on validation (LBFGS on NLL)."""
-    logp = probs.clamp_min(1e-9).log()
-    t = torch.ones(1, requires_grad=True)
-    opt = torch.optim.LBFGS([t], lr=0.05, max_iter=200)
+    # clone(): probabilities come from inference_mode, whose tensors autograd refuses to use
+    logp = probs.clone().float().clamp_min(1e-9).log()
+    y = y.clone().long()
+    log_t = torch.zeros(1, requires_grad=True)  # T = exp(log_t) > 0 always (a raw T can overshoot below 0)
+    opt = torch.optim.LBFGS([log_t], lr=0.05, max_iter=200)
 
     def closure():
         opt.zero_grad()
-        loss = torch.nn.functional.cross_entropy(logp / t, y)
+        loss = torch.nn.functional.cross_entropy(logp / log_t.exp(), y)
         loss.backward()
         return loss
     opt.step(closure)
-    return float(t.detach())
+    return float(log_t.detach().exp())
 
 
 def apply_t(probs, t):
@@ -83,10 +87,16 @@ def apply_t(probs, t):
 
 
 # ------------------------------------------------------------------ robustness
-def corruption(kind, level):
-    rng = np.random.default_rng(0)
+class Corruption:
+    """One image corruption (kind, level). A class, not a closure, so DataLoader worker processes can pickle it."""
 
-    def f(img):
+    def __init__(self, kind, level):
+        self.kind, self.level = kind, level
+
+    def __call__(self, img):
+        kind, level = self.kind, self.level
+        # seeded by the image itself: deterministic in any DataLoader worker process
+        rng = np.random.default_rng(zlib.crc32(img.tobytes()))
         if kind == "gaussian noise":
             a = np.asarray(img, np.float32) / 255 + rng.normal(0, level, (img.size[1], img.size[0], 3))
             return Image.fromarray((a.clip(0, 1) * 255).astype(np.uint8))
@@ -110,7 +120,10 @@ def corruption(kind, level):
             img.paste((128, 128, 128), (x, y, x + s, y + s))
             return img
         raise ValueError(kind)
-    return f
+
+
+def corruption(kind, level):
+    return Corruption(kind, level)
 
 
 CORRUPTIONS = [("gaussian noise", 0.05), ("gaussian noise", 0.1), ("gaussian noise", 0.2), ("blur", 1), ("blur", 2),
@@ -184,21 +197,156 @@ def pest_out_of_domain(threshold=0.40):
             "tea_pest_photos_detected": tp, "pest_photo_recall_tea": round(tp / max(1, len(tea_pest)), 4)}
 
 
-def full_pipeline_profile():
-    """End-to-end CLI pipeline on CPU: per-component latency and the process's peak memory."""
-    from surveillance.pipeline import Surveillance
-    before = process_memory_mb()
-    s = Surveillance(device="cpu", crop="tea")  # crop="tea" so every component, pests included, is timed (worst case)
-    after = process_memory_mb()
-    runs = []
-    for name in ("potato_early_blight.JPG", "tomato_bacterial_spot.JPG", "corn_common_rust.JPG", "tomato-mold.jpg"):
+PROFILE_PHOTOS = ("potato_early_blight.JPG", "tomato_bacterial_spot.JPG", "corn_common_rust.JPG", "tomato-mold.jpg")
+
+# Runs in a fresh process so its memory is the pipeline's alone (the evaluation process holds five classifiers).
+_PIPELINE_CHILD = r"""
+import json, sys
+import numpy as np
+root = sys.argv[1]
+sys.path.insert(0, root)
+from pathlib import Path
+from surveillance.pipeline import Surveillance
+s = Surveillance(device="cpu")
+history = Path(root) / "demo" / "field_history.csv"
+runs = []
+for name in %r:
+    for crop in (None, "tea"):  # crop=None times classify; crop="tea" times the pest model
+        s.crop = crop
         for _ in range(3):
-            report, _ = s.analyze(ROOT / "test_images" / name, name=name)
+            report, _ = s.analyze(Path(root) / "test_images" / name, history_csv=history, name=name)
             runs.append(report.timings_ms)
-    med = {k: round(float(np.median([r[k] for r in runs if k in r])), 1) for k in runs[0]}
-    return {"components": s.components, "median_ms_per_component": med,
-            "process_memory_MB_before_models": before, "process_memory_MB_all_models_loaded": after,
-            "peak_memory_MB_after_inference": process_memory_mb()}
+keys = ["classify", "detect", "pests", "segment", "forecast"]
+med = {k: round(float(np.median([r[k] for r in runs if k in r])), 1) for k in keys if any(k in r for r in runs)}
+med["total (all five)"] = round(sum(med.values()), 1)
+print("DONE " + json.dumps({"components": s.components, "median_ms_per_component": med}), flush=True)
+sys.stdin.readline()
+""" % (PROFILE_PHOTOS,)
+
+# The Flask web app (both classifiers loaded), in its own environment, as a server would run it.
+_WEBAPP_CHILD = r"""
+import io, json, sys, time
+from pathlib import Path
+app_dir = Path(sys.argv[1]) / "Flask Deployed App"
+sys.path.insert(0, str(app_dir))
+from app import create_app
+app = create_app()
+app.config["RATE_LIMIT_PER_MINUTE"] = 0
+client = app.test_client()
+times = []
+for name in %r:
+    data = (Path(sys.argv[1]) / "test_images" / name).read_bytes()
+    for _ in range(3):
+        t = time.perf_counter()
+        r = client.post("/api/predict", data={"image": (io.BytesIO(data), name)}, content_type="multipart/form-data")
+        times.append((time.perf_counter() - t) * 1000)
+        assert r.status_code == 200, r.status_code
+times.sort()
+print("DONE " + json.dumps({"median_request_ms": round(times[len(times) // 2], 1)}), flush=True)
+sys.stdin.readline()
+""" % (PROFILE_PHOTOS,)
+
+
+def _profile_child(python, code):
+    """Run code in a new process; return its JSON result and its peak / current memory in MB (Windows: peak
+    working set; elsewhere the current RSS at the end)."""
+    import subprocess
+
+    import psutil
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES="-1", PYTHONIOENCODING="utf-8")
+    proc = subprocess.Popen([str(python), "-c", code, str(ROOT)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            text=True, env=env, cwd=str(ROOT))
+    result = None
+    for line in proc.stdout:
+        if line.startswith("DONE "):
+            result = json.loads(line[5:])
+            break
+    # A virtual-environment python.exe on Windows is a small launcher that runs the real interpreter as a child
+    # process, so add up the whole process tree.
+    root = psutil.Process(proc.pid)
+    infos = [q.memory_info() for q in [root] + root.children(recursive=True)]
+    peak = sum(getattr(i, "peak_wset", i.rss) for i in infos)
+    rss = sum(i.rss for i in infos)
+    proc.stdin.write("\n")
+    proc.stdin.flush()
+    proc.wait(timeout=60)
+    if result is None:
+        raise RuntimeError(f"profiling child failed (exit {proc.returncode})")
+    result.update({"peak_memory_MB": round(peak / 2**20), "memory_MB_at_end": round(rss / 2**20)})
+    return result
+
+
+def full_pipeline_profile():
+    """End-to-end CLI pipeline on a 4-thread CPU (all five components) and the web app, each in a fresh process."""
+    out = {"pipeline": _profile_child(sys.executable, _PIPELINE_CHILD)}
+    web_python = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if web_python.exists():
+        out["web_app"] = _profile_child(web_python, _WEBAPP_CHILD)
+    return out
+
+
+def lab_subsets(splits):
+    rng = np.random.default_rng(0)
+    lab_test = [splits["test_lab"][i] for i in rng.choice(len(splits["test_lab"]), 2000, replace=False)]
+    lab_val = [splits["val_lab"][i] for i in rng.choice(len(splits["val_lab"]), 1000, replace=False)]
+    return lab_test, lab_val
+
+
+def classification_stage(splits, lab_test, lab_val):
+    """Accuracy, macro F1 and calibration of every classifier; returns (results, field reliability bins)."""
+    bench, reliability = {}, {}
+    for name, members in CLASSIFIERS.items():
+        if not all((RUNS / r / "best.pt").exists() for r, _ in members):
+            continue
+        # Two temperatures, both fitted on validation only. The product sees field photos, so the one that counts
+        # is fitted on field validation photos; the one fitted on mixed lab + field validation is kept to show
+        # what happens when the calibration set does not match the deployment domain (lab photos dominate it).
+        pv_field, yv_field = probs_for(members, splits["val_field"])
+        pv_lab, yv_lab = probs_for(members, lab_val)
+        t = fit_temperature(pv_field, yv_field)
+        t_mixed = fit_temperature(torch.cat([pv_field, pv_lab]), torch.cat([yv_field, yv_lab]))
+        t_lab = fit_temperature(pv_lab, yv_lab)
+        row = {"temperature": round(t, 3), "temperature_fitted_on_mixed_validation": round(t_mixed, 3),
+               "temperature_fitted_on_lab_validation": round(t_lab, 3)}
+        for split, items in (("field", splits["test_field"]), ("lab", lab_test)):
+            p, y = probs_for(members, items)
+            m = metrics(y.tolist(), p.argmax(1).tolist())
+            e_raw, rel = ece(p, y)
+            e_cal, rel_cal = ece(apply_t(p, t if split == "field" else t_lab), y)
+            e_mixed, _ = ece(apply_t(p, t_mixed), y)
+            row[split] = {"accuracy": round(m["accuracy"], 4), "macro_F1": round(m["macro_f1"], 4),
+                          "macro_recall": round(m["macro_recall"], 4), "ECE": round(e_raw, 4),
+                          "ECE_after_temperature_scaling": round(e_cal, 4),
+                          "ECE_with_mixed_validation_temperature": round(e_mixed, 4)}
+            if split == "field":
+                reliability[name] = (rel, rel_cal)
+        bench[name] = row
+        print(f"{name:30s} field acc {row['field']['accuracy']:.3f} F1 {row['field']['macro_F1']:.3f} ECE {row['field']['ECE']:.3f}"
+              f" -> {row['field']['ECE_after_temperature_scaling']:.3f} (T={t:.2f}; mixed T={t_mixed:.2f} gives "
+              f"{row['field']['ECE_with_mixed_validation_temperature']:.3f}); lab ECE {row['lab']['ECE']:.3f} -> "
+              f"{row['lab']['ECE_after_temperature_scaling']:.3f} (T={t_lab:.2f})", flush=True)
+    return bench, reliability
+
+
+def plot_reliability(out):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    bench, reliability = out["classification"], out["reliability_field"]
+    fig, axes = plt.subplots(1, len(reliability), figsize=(3.4 * len(reliability), 3.6), sharey=True)
+    for ax, (name, (rel, rel_cal)) in zip(np.atleast_1d(axes), reliability.items()):
+        ax.plot([0, 1], [0, 1], color="#898781", lw=1, ls="--")
+        for r, colour, lab in ((rel, "#2a78d6", "raw"), (rel_cal, "#eb6834", "temperature-scaled (field-fitted T)")):
+            ax.plot([c for _, _, c, _ in r], [a for _, a, _, _ in r], "o-", color=colour, lw=1.8, ms=4, label=lab)
+        ax.set_title(f"{name}\nECE {bench[name]['field']['ECE']:.3f} -> {bench[name]['field']['ECE_after_temperature_scaling']:.3f}",
+                     fontsize=8, loc="left")
+        ax.set_xlabel("confidence")
+    np.atleast_1d(axes)[0].set_ylabel("accuracy (field test)")
+    np.atleast_1d(axes)[0].legend(fontsize=7, frameon=False, loc="upper left")
+    fig.suptitle("Reliability diagrams on real field photos (perfect calibration = dashed line)", x=0.01, y=1.04,
+                 ha="left", fontsize=10)
+    fig.savefig(RESULTS / "eval_reliability.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
 
 
 def main():
@@ -208,47 +356,12 @@ def main():
     RESULTS.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(0)
     splits = load_splits()
-    rng = np.random.default_rng(0)
-    lab_test = [splits["test_lab"][i] for i in rng.choice(len(splits["test_lab"]), 2000, replace=False)]
-    lab_val = [splits["val_lab"][i] for i in rng.choice(len(splits["val_lab"]), 1000, replace=False)]
+    lab_test, lab_val = lab_subsets(splits)
     out = {"note": "lab = 2,000 random PlantVillage test photos (leaf-grouped split); field = all 225 PlantDoc test photos"}
 
     # 1. Classification benchmark + calibration
-    bench, reliability = {}, {}
-    for name, members in CLASSIFIERS.items():
-        if not all((RUNS / r / "best.pt").exists() for r, _ in members):
-            continue
-        p_val, y_val = probs_for(members, splits["val_field"] + lab_val)
-        t = fit_temperature(p_val, y_val)
-        row = {"temperature": round(t, 3)}
-        for split, items in (("field", splits["test_field"]), ("lab", lab_test)):
-            p, y = probs_for(members, items)
-            m = metrics(y.tolist(), p.argmax(1).tolist())
-            e_raw, rel = ece(p, y)
-            e_cal, rel_cal = ece(apply_t(p, t), y)
-            row[split] = {"accuracy": round(m["accuracy"], 4), "macro_F1": round(m["macro_f1"], 4),
-                          "macro_recall": round(m["macro_recall"], 4), "ECE": round(e_raw, 4),
-                          "ECE_after_temperature_scaling": round(e_cal, 4)}
-            if split == "field":
-                reliability[name] = (rel, rel_cal)
-        bench[name] = row
-        print(f"{name:30s} field acc {row['field']['accuracy']:.3f} F1 {row['field']['macro_F1']:.3f} ECE {row['field']['ECE']:.3f}"
-              f" -> {row['field']['ECE_after_temperature_scaling']:.3f} (T={t:.2f})", flush=True)
-    out["classification"] = bench
-
-    fig, axes = plt.subplots(1, len(reliability), figsize=(3.4 * len(reliability), 3.4), sharey=True)
-    for ax, (name, (rel, rel_cal)) in zip(np.atleast_1d(axes), reliability.items()):
-        ax.plot([0, 1], [0, 1], color="#898781", lw=1, ls="--")
-        for r, colour, lab in ((rel, "#2a78d6", "raw"), (rel_cal, "#eb6834", "temperature-scaled")):
-            ax.plot([c for _, _, c, _ in r], [a for _, a, _, _ in r], "o-", color=colour, lw=1.8, ms=4, label=lab)
-        ax.set_title(f"{name}\nECE {bench[name]['field']['ECE']:.3f} -> {bench[name]['field']['ECE_after_temperature_scaling']:.3f}",
-                     fontsize=8, loc="left")
-        ax.set_xlabel("confidence")
-    np.atleast_1d(axes)[0].set_ylabel("accuracy (field test)")
-    np.atleast_1d(axes)[0].legend(fontsize=7, frameon=False)
-    fig.suptitle("Reliability diagrams on real field photos (perfect calibration = dashed line)", x=0.01, ha="left", fontsize=10)
-    fig.savefig(RESULTS / "eval_reliability.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    out["classification"], out["reliability_field"] = classification_stage(splits, lab_test, lab_val)
+    plot_reliability(out)
 
     # 2. Robustness of the shipped ensemble on field photos
     print("robustness (shipped ensemble, field test):", flush=True)
@@ -289,11 +402,16 @@ def main():
 def write_summary(out):
     lines = ["# Evaluation summary (generated by surveillance/evaluate_all.py)", "",
              "## Classification (39 classes)", "",
-             "| Model | Field acc | Field macro F1 | Field ECE (raw → scaled) | Lab acc | Lab macro F1 | Lab ECE | T |", "|---|---:|---:|---:|---:|---:|---:|---:|"]
+             "Temperatures are fitted on validation only: T(field) on field validation photos (used for field test),",
+             "T(lab) on lab validation photos, and T(mixed) on both together, to show the effect of a mismatched calibration set.", "",
+             "| Model | Field acc | Field macro F1 | Field ECE raw → T(field) | Field ECE with T(mixed) | Lab acc | Lab macro F1 | Lab ECE raw → T(lab) | T(field) / T(mixed) / T(lab) |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|---|"]
     for name, r in out["classification"].items():
         f, lab = r["field"], r["lab"]
         lines.append(f"| {name} | {f['accuracy']:.2%} | {f['macro_F1']:.3f} | {f['ECE']:.3f} → {f['ECE_after_temperature_scaling']:.3f} | "
-                     f"{lab['accuracy']:.2%} | {lab['macro_F1']:.3f} | {lab['ECE']:.3f} | {r['temperature']} |")
+                     f"{f['ECE_with_mixed_validation_temperature']:.3f} | {lab['accuracy']:.2%} | {lab['macro_F1']:.3f} | "
+                     f"{lab['ECE']:.3f} → {lab['ECE_after_temperature_scaling']:.3f} | {r['temperature']} / "
+                     f"{r['temperature_fitted_on_mixed_validation']} / {r['temperature_fitted_on_lab_validation']} |")
     lines += ["", "## Robustness of the shipped ensemble (field test)", "", "| Corruption | Level | Accuracy | Macro F1 |", "|---|---|---:|---:|"]
     lines += [f"| {r['corruption']} | {r['level']} | {r['accuracy']:.2%} | {r['macro_F1']:.3f} |" for r in out["robustness"]]
     lines += ["", "## Detection (COCO mAP on the untouched test split)", "", "| Run | mAP@[.5:.95] | mAP@.5 | Pest mAP | CPU ms | Params (M) |", "|---|---:|---:|---:|---:|---:|"]
@@ -310,13 +428,30 @@ def write_summary(out):
     lines += ["", "## Segmentation and instance analysis (LeafNet75 test)", ""]
     for name, m in out["segmentation"].items():
         lines.append(f"- **{name}**: " + ", ".join(f"{k} {v}" for k, v in m.items()))
-    p = out["pipeline_cpu_profile"]
-    lines += ["", "## Full pipeline on CPU", "", f"Components: {', '.join(p['components'])}.", "",
+    p = out["pipeline_cpu_profile"]["pipeline"]
+    lines += ["", "## Full pipeline on CPU (4 threads, fresh process)", "", f"Components: {', '.join(p['components'])}.", "",
               "| Component | Median ms |", "|---|---:|"] + [f"| {k} | {v} |" for k, v in p["median_ms_per_component"].items()]
-    lines += ["", f"Process memory: {p['process_memory_MB_before_models']} MB before models, "
-              f"{p['process_memory_MB_all_models_loaded']} MB with all models loaded, {p['peak_memory_MB_after_inference']} MB after inference."]
+    lines += ["", f"Pipeline process: peak memory {p['peak_memory_MB']} MB, {p['memory_MB_at_end']} MB at the end."]
+    w = out["pipeline_cpu_profile"].get("web_app")
+    if w:
+        lines += [f"Web app (Flask, both classifiers, `/api/predict`): median request {w['median_request_ms']} ms, "
+                  f"peak memory {w['peak_memory_MB']} MB."]
     (RESULTS / "EVALUATION_SUMMARY.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 if __name__ == "__main__":
-    main()
+    if "--classification-only" in sys.argv:  # re-run the classifier benchmark, keep every other result
+        saved = json.loads((RESULTS / "evaluation.json").read_text())
+        sp = load_splits()
+        saved["classification"], saved["reliability_field"] = classification_stage(sp, *lab_subsets(sp))
+        plot_reliability(saved)
+        (RESULTS / "evaluation.json").write_text(json.dumps(saved, indent=1))
+        write_summary(saved)
+    elif "--profile-only" in sys.argv:  # re-measure latency and memory, keep every other result
+        saved = json.loads((RESULTS / "evaluation.json").read_text())
+        saved["pipeline_cpu_profile"] = full_pipeline_profile()
+        (RESULTS / "evaluation.json").write_text(json.dumps(saved, indent=1))
+        write_summary(saved)
+        print(json.dumps(saved["pipeline_cpu_profile"], indent=1))
+    else:
+        main()

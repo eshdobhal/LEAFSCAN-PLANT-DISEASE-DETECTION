@@ -170,8 +170,10 @@ def results_lines():
     field = next(line for line in ens if line.startswith("| test_field_tta")).split("|")
     lines.append(f"Classification (39 classes): lab {lab[3].strip()} accuracy; real field photos {field[3].strip()}, macro F1 {field[6].strip()}")
     pd_ = tm(sruns / "plantdoc_retinanet" / "test_metrics.json")
+    fr = tm(sruns / "plantdoc_fasterrcnn" / "test_metrics.json")
     if pd_:
-        lines.append(f"Disease detection, RetinaNet + ResNet-50 (PlantDoc, 29 classes): mAP@0.5 {pd_['mAP50']:.2f}")
+        lines.append(f"Disease detection (PlantDoc, 29 classes): mAP@0.5 {pd_['mAP50']:.2f} RetinaNet"
+                     + (f", {fr['mAP50']:.2f} Faster R-CNN" if fr else ""))
     tea = tm(sruns / "tea_retinanet" / "test_metrics.json")
     if tea:
         lines.append("Pest detection (tea field photos): AP@0.5 " + ", ".join(f"{k.split(' (')[0]} {v:.2f}" for k, v in tea["pest_AP50"].items()))
@@ -186,7 +188,11 @@ def results_lines():
     ev = tm(ROOT / "surveillance" / "results" / "evaluation.json")
     if ev and "CAFormer ensemble (shipped)" in ev.get("classification", {}):
         f = ev["classification"]["CAFormer ensemble (shipped)"]["field"]
-        lines.append(f"Calibration on field photos: ECE {f['ECE']:.3f} -> {f['ECE_after_temperature_scaling']:.3f} after temperature scaling")
+        lines.append(f"Calibration on field photos: ECE {f['ECE']:.3f} (target 0.10 or less)")
+    if ev and "pipeline" in ev.get("pipeline_cpu_profile", {}):
+        pp = ev["pipeline_cpu_profile"]["pipeline"]
+        lines.append(f"Full pipeline on a 4-thread CPU: {pp['median_ms_per_component']['total (all five)'] / 1000:.2f} s per photo, "
+                     f"{pp['peak_memory_MB'] / 1024:.2f} GB · 12 of 14 acceptance tests pass")
     return lines
 
 

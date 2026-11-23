@@ -121,3 +121,32 @@ def test_cli_writes_report_and_alert_exit_code(tmp_path):
     report = json.loads((tmp_path / "tomato-mold.json").read_text())
     assert report["classification"]["low_confidence"] is True and code == 2  # uncertain -> alert -> exit 2
     assert (tmp_path / "tomato-mold_annotated.png").exists()
+
+
+def test_temperature_scaling_accepts_inference_mode_tensors():
+    """Probabilities in evaluate_all come from torch.inference_mode(); fitting must still work."""
+    import torch
+
+    from surveillance.evaluate_all import fit_temperature
+    torch.manual_seed(0)
+    with torch.inference_mode():
+        logits = torch.randn(4000, 5) * 3
+        probs = torch.softmax(logits, 1)
+        y = torch.multinomial(probs, 1).squeeze(1)  # labels drawn from the probabilities: calibrated, T = 1
+        perfect = logits.argmax(1)                  # every prediction right: best T tends to 0
+    assert abs(fit_temperature(probs, y) - 1) < 0.1
+    assert 0 < fit_temperature(probs, perfect) < 1  # stays positive (a raw T overshot to -828 here)
+
+
+def test_corruptions_survive_pickling_for_dataloader_workers():
+    """Windows DataLoader workers pickle the transform; a closure crashed the first evaluation run."""
+    import pickle
+
+    from PIL import Image
+
+    from surveillance.evaluate_all import CORRUPTIONS, corruption
+    img = Image.new("RGB", (64, 48), (40, 120, 60))
+    for kind, level in CORRUPTIONS:
+        f = pickle.loads(pickle.dumps(corruption(kind, level)))
+        assert f(img).mode == "RGB"
+        assert list(f(img).getdata()) == list(corruption(kind, level)(img).getdata())  # deterministic

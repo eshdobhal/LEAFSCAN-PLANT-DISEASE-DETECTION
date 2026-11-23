@@ -107,7 +107,7 @@ or video (`python -m surveillance.cli analyze leaf.jpg`). All results below are 
 
 | Question | Model | Test result |
 |---|---|---|
-| Where are the diseased leaves? | RetinaNet + ResNet-50-FPN, PlantDoc (29 classes) | mAP@0.5 **0.489** (target 0.40) |
+| Where are the diseased leaves? | RetinaNet + ResNet-50-FPN, PlantDoc (29 classes) | mAP@0.5 **0.489** (target 0.40); Faster R-CNN 0.607 with `--detector fasterrcnn` |
 | Is there pest damage? (tea) | RetinaNet + ResNet-50-FPN, tea field photos | AP@0.5 **0.96** red spider mite, **0.98** tea mosquito bug |
 | How much tissue is damaged? | DeepLabV3-ResNet-50 | lesion IoU 0.58; severity grade within ±1 for **87.5%** of photos |
 | Will it pass the action threshold? | LSTM on simulated epidemics | 7-day error **64% below** "tomorrow = today"; alert F1 0.74 |
@@ -855,7 +855,7 @@ python scripts\screenshots.py     # regenerates screenshots/ and checks for side
 | `tests/test_model.py` | 4 | Model selection (`auto`, ensemble on/off), top-3 output, preprocessing at 224 and 288 px |
 | `tests/test_e2e.py` | 15 | Real Chromium: upload → result, sample button, 4000 px PNG resized in the browser, camera capture (dialog centred, stream stopped), filters, theme persistence, phone menu, no-JavaScript upload, no overflow at 320/375/1440 px, skip link, no console/CSP errors, API |
 | `fundamentals/tests/` | 29 | Gradient checks of every NumPy layer against finite differences; neurons, optimisers, learning rules |
-| `surveillance/tests/` | 16 | Detection labels and augmentation, lesion instances and F1, severity grades, temperature scaling and ECE, convolution by hand, simulation, forecaster, CLI |
+| `surveillance/tests/` | 18 | Detection labels and augmentation, lesion instances and F1, severity grades, temperature scaling and ECE, convolution by hand, simulation, forecaster, CLI |
 
 GitHub Actions runs the 53 app and model tests with the real weights, and the 29 fundamentals tests, on every push
 ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)). The browser version is built and tested in

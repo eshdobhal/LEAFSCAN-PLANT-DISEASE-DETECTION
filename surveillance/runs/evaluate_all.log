@@ -1,0 +1,42 @@
+CAFormer-S18 224               field acc 0.684 F1 0.666 ECE 0.118 -> 0.093 (T=1.04; mixed T=0.83 gives 0.198); lab ECE 0.098 -> 0.004 (T=0.51)
+CAFormer-S18 288               field acc 0.684 F1 0.662 ECE 0.138 -> 0.132 (T=1.05; mixed T=0.84 gives 0.212); lab ECE 0.096 -> 0.003 (T=0.08)
+CAFormer ensemble (shipped)    field acc 0.711 F1 0.693 ECE 0.072 -> 0.085 (T=0.98; mixed T=0.80 gives 0.153); lab ECE 0.098 -> 0.003 (T=0.03)
+ResNet-50                      field acc 0.707 F1 0.698 ECE 0.097 -> 0.074 (T=1.02; mixed T=0.82 gives 0.163); lab ECE 0.100 -> 0.004 (T=0.46)
+GoogLeNet                      field acc 0.720 F1 0.708 ECE 0.114 -> 0.092 (T=0.93; mixed T=0.76 gives 0.121); lab ECE 0.116 -> 0.006 (T=0.61)
+robustness (shipped ensemble, field test):
+  none                     None  acc 0.711
+  gaussian noise           0.05  acc 0.698
+  gaussian noise           0.1   acc 0.667
+  gaussian noise           0.2   acc 0.587
+  blur                     1     acc 0.702
+  blur                     2     acc 0.671
+  blur                     4     acc 0.578
+  brightness               0.5   acc 0.698
+  brightness               1.5   acc 0.711
+  contrast                 0.5   acc 0.689
+  contrast                 1.5   acc 0.724
+  JPEG quality             20    acc 0.689
+  JPEG quality             8     acc 0.627
+  rotation                 30    acc 0.720
+  rotation                 90    acc 0.702
+  occlusion (grey square)  0.25  acc 0.716
+  occlusion (grey square)  0.5   acc 0.684
+pest model out of domain: {'threshold': 0.4, 'other_crops_photos': 236, 'other_crops_with_false_pest': 210, 'false_pest_rate_other_crops': 0.8898, 'tea_photos_with_pest': 259, 'tea_pest_photos_detected': 259, 'pest_photo_recall_tea': 1.0}
+{
+ "components": [
+  "classify",
+  "detect",
+  "pests",
+  "segment",
+  "forecast"
+ ],
+ "median_ms_per_component": {
+  "detect": 337.6,
+  "pests": 305.3,
+  "segment": 499.0,
+  "total": 1172.2
+ },
+ "process_memory_MB_before_models": 2441,
+ "process_memory_MB_all_models_loaded": 2603,
+ "peak_memory_MB_after_inference": 2646
+}

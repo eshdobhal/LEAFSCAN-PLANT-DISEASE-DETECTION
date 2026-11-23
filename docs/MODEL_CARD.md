@@ -11,12 +11,12 @@ that were not used for training or model selection.*
 | Component | Model | Shipped in | Trained on | Headline test result |
 |---|---|---|---|---|
 | Disease classification | **CAFormer-S18 ensemble** (224 px + 288 px, mirror TTA) | web app, browser version, CLI | PlantVillage + PlantDoc (39 classes) | lab accuracy 99.63%; **field accuracy 71.11%, macro F1 0.693** |
-| Disease detection | **RetinaNet, ResNet-50-FPN** | CLI | PlantDoc-corrected (29 classes, 13 crops) | **mAP@0.5 0.489**, mAP@[.5:.95] 0.376 |
+| Disease detection | **RetinaNet, ResNet-50-FPN** (default) or Faster R-CNN (`--detector fasterrcnn`) | CLI | PlantDoc-corrected (29 classes, 13 crops) | **mAP@0.5 0.489** (Faster R-CNN: 0.607) |
 | Pest detection | **RetinaNet, ResNet-50-FPN** | CLI (`--crop tea` only) | Tea field photos (6 classes, 2 pests) | **pest AP@0.5 0.96 / 0.98**, mAP@[.5:.95] 0.710 |
 | Damaged-tissue segmentation | **DeepLabV3, ResNet-50** | CLI | LeafNet75 lesion masks | **IoU 0.581**, Dice 0.735, severity grade within ±1 for 87.5% |
 | Lesion instances (benchmark) | Mask R-CNN, ResNet-50-FPN | research only | LeafNet75 (connected lesion regions) | mask mAP@0.5 0.576 |
 | Progression forecast | **LSTM** (2 layers, 64 units) | CLI (`--history`) | **simulated** epidemics | 7-day MAE 1.68 points (persistence 4.64); alert F1 0.744 |
-| Augmentation study | conditional VAE, conditional DCGAN | research only | 8-class PlantVillage subset, 64 px | ⟪PENDING:generative⟫ |
+| Augmentation study | conditional VAE, conditional DCGAN | research only | 8-class PlantVillage subset, 64 px | no gain beyond oversampling; GAN mode-collapsed (§4.5) |
 | Baselines | ResNet-50, GoogLeNet (classification); Faster R-CNN, YOLOv8s (detection); FCN (segmentation); vanilla RNN (forecast) | research only | same data as above | see §4 |
 
 ## 2. Intended use
@@ -47,10 +47,10 @@ that were not used for training or model selection.*
 
 | Model | Params | Lab acc. | Field acc. | Field macro F1 | Field ECE raw → scaled | Answers ≥ 80% sure | Acc. when ≥ 80% sure |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| **CAFormer ensemble (shipped)** | 2 × 24.4 M | **99.63%** | 71.11% | 0.693 | ⟪PENDING:ece_ens⟫ | 63% | 83.69% |
-| CAFormer-S18 224 | 24.4 M | 99.45% | 68.44% | — | ⟪PENDING:ece_224⟫ | — | 80.89% |
-| ResNet-50 | 23.6 M | 99.42% | 70.67% | 0.698 | ⟪PENDING:ece_r50⟫ | 61% | 87.59% |
-| GoogLeNet | 5.6 M | 96.48% | **72.00%** | **0.708** | ⟪PENDING:ece_goog⟫ | 40% | 87.64% |
+| **CAFormer ensemble (shipped)** | 2 × 24.4 M | **99.63%** | 71.11% | 0.693 | 0.072 → 0.085 | 63% | 83.69% |
+| CAFormer-S18 224 | 24.4 M | 99.45% | 68.44% | — | 0.118 → 0.093 | — | 80.89% |
+| ResNet-50 | 23.6 M | 99.42% | 70.67% | 0.698 | 0.097 → 0.074 | 61% | 87.59% |
+| GoogLeNet | 5.6 M | 96.48% | **72.00%** | **0.708** | 0.114 → 0.092 | 40% | 87.64% |
 
 Test sets: 10,937 lab photos (leaf-grouped PlantVillage split) and 225 real field photos (PlantDoc).
 **On field photos the four models are statistically indistinguishable.** The 95% interval on 225 photos is
@@ -58,21 +58,29 @@ about ±6 points, and they span 68–72%. The ensemble is shipped because it was
 before testing, and it gives the most useful confidence (63% of answers are ≥ 80% sure; GoogLeNet: 40%).
 It is not shipped because it is more accurate on field photos.
 
-**Robustness** (shipped ensemble, field photos, 16 corruptions): ⟪PENDING:robustness⟫
+**Calibration.** Temperatures are fitted on the **field** validation photos, because the product sees field
+photos. Fitting on lab-heavy validation instead (T ≈ 0.8) roughly doubles field ECE (ensemble 0.153), because
+label smoothing makes the models under-confident on easy lab photos and the fit then sharpens them.
+
+**Robustness** (shipped ensemble, field photos, 16 corruptions): Mild phone-photo damage (noise σ 0.05, blur radius 1, brightness ×0.5 or ×1.5, JPEG quality 20) costs at most **2.2 points** (71.1% → 68.9%). Rotation, contrast and a grey square over 25% of the photo cost nothing. Heavy noise (σ 0.2) and heavy blur (radius 4) bring it down to 58–59%, and JPEG quality 8 to 63%.
 
 ### 4.2 Detection (COCO mAP on the untouched test splits; `surveillance/runs/*/test_metrics.json`)
 
 | Dataset | Model | mAP@[.5:.95] | mAP@0.5 | Pest AP@0.5 (mite / bug) | CPU ms | Params |
 |---|---|---:|---:|---:|---:|---:|
 | PlantDoc (236 photos) | **RetinaNet R50-FPN** | 0.376 | **0.489** | — | 458 | 36.9 M |
-| PlantDoc | Faster R-CNN R50-FPN | ⟪PENDING:pd_frcnn⟫ | | — | | |
-| PlantDoc | YOLOv8s | ⟪PENDING:pd_yolo⟫ | | — | | |
+| PlantDoc | **Faster R-CNN R50-FPN** | **0.464** | **0.607** | — | 1,069 | 43.4 M |
+| PlantDoc | YOLOv8s | 0.430 | 0.550 | — | **17** | 11.1 M |
 | Tea (406 photos) | **RetinaNet R50-FPN** | **0.710** | 0.988 | 0.964 / 0.975 | 284 | 36.5 M |
 | Tea | Faster R-CNN R50-FPN | 0.694 | **0.989** | 0.972 / 0.977 | 935 | 43.3 M |
 | Tea | YOLOv8s | 0.696 | 0.985 | 0.958 / 0.976 | **34** | 11.1 M |
 
+**On PlantDoc, Faster R-CNN is clearly the most accurate** (+12 points mAP@0.5 over RetinaNet), and YOLOv8s
+sits between them at a fraction of the CPU cost. RetinaNet stays the default because the brief specifies
+"YOLO or RetinaNet with ResNet" for the product, it is 2.3× faster than Faster R-CNN on a CPU, and it passes
+R4. Faster R-CNN is one flag away (`--detector fasterrcnn`) where accuracy matters more than speed.
 PlantDoc's original paper reported mAP@0.5 0.389 (Faster R-CNN, Singh et al. 2020), but on the uncorrected
-labels, so the two numbers are not directly comparable. Weakest PlantDoc classes: tomato mould leaf (AP 0.06),
+labels, so the numbers are not directly comparable. Weakest PlantDoc classes: tomato mould leaf (AP 0.06),
 bell-pepper leaf (0.11), tomato bacterial spot (0.11), potato early blight (0.14). These are small, similar
 spots, where boxes are also ambiguous for people.
 
@@ -98,9 +106,36 @@ prediction. **Total damaged area** (IoU, severity) is far more reliable than **l
 
 The LSTM is shipped for its lower error and fewer false alarms; the RNN catches slightly more crossings.
 
-### 4.5 Deployment (CPU, 4 threads; `surveillance/results/evaluation.json`)
+### 4.5 Generative augmentation study (`surveillance/results/generative.json`; research only)
 
-⟪PENDING:deployment⟫
+Potato late blight cut to 25 training photos (other classes 250); small CNN, 100 test photos per class,
+mean ± std over 3 seeds.
+
+| Training set | Macro F1 | Late-blight recall |
+|---|---:|---:|
+| Real only (imbalanced) | 0.933 | 0.557 ± 0.057 |
+| **+ oversampling (repeat the 25)** | **0.955** | **0.703 ± 0.071** |
+| + classic augmentation | 0.934 | 0.570 ± 0.043 |
+| + 225 conditional-VAE leaves | 0.942 | 0.603 ± 0.062 |
+| + 225 conditional-GAN leaves | 0.934 | 0.590 ± 0.073 |
+
+Synthetic leaves gave no gain beyond simple oversampling (their +3–5 points are within one standard
+deviation). A classifier trained on real photos recognises **0%** of the synthetic leaves as late blight:
+the VAE's samples are blurry leaves without lesions, and the GAN **mode-collapsed** on the 25-photo class
+(every sample is the same image). Neither generator is used in the product.
+
+### 4.6 Deployment (CPU, 4 threads; `surveillance/results/evaluation.json`)
+
+| What | Median per photo | Peak memory |
+|---|---:|---:|
+| Web app: `/api/predict`, both classifiers + mirror TTA | **194 ms** | **687 MB** (whole server process) |
+| CLI pipeline, all five components | **1.36 s** | **1.74 GB** (whole process) |
+| of which: classify / detect / pests / segment / forecast | 200 / 337 / 319 / 498 / 1 ms | |
+| Faster R-CNN instead of RetinaNet for `detect` | about +0.6 s | |
+| YOLOv8s (benchmark only) | 17–34 ms | |
+
+Measured by `surveillance/evaluate_all.py` in fresh processes on a laptop CPU limited to 4 threads, median
+over 4 photos × 3 runs (the pipeline: each photo also run with `crop="tea"` so the pest model is timed).
 
 ## 5. Training details
 

@@ -2,7 +2,8 @@
 
 One photo (or video) in; one report out. Components, each optional and each with its own trained model:
   classify      disease of the leaf            CAFormer-S18 ensemble (the LeafScan web app's model)
-  detect        diseased leaves, with boxes    RetinaNet-ResNet50 trained on PlantDoc (13 crops)
+  detect        diseased leaves, with boxes    RetinaNet-ResNet50 trained on PlantDoc (13 crops); detector="fasterrcnn"
+                                               swaps in Faster R-CNN (more accurate on PlantDoc, about 2x slower)
   pests         pest damage, with boxes        RetinaNet-ResNet50 trained on tea field photos (2 pests);
                                                runs only when the crop is declared as tea (crop="tea"), because
                                                on other crops it mistakes disease spots for pest damage
@@ -51,8 +52,10 @@ class Report:
 
 
 class Surveillance:
-    def __init__(self, components=("classify", "detect", "pests", "segment", "forecast"), device=None, crop=None):
+    def __init__(self, components=("classify", "detect", "pests", "segment", "forecast"), device=None, crop=None,
+                 detector="retinanet"):
         self.crop = crop.lower() if crop else None
+        self.detector = detector
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         torch.set_num_threads(4)
         self.components = []
@@ -65,9 +68,9 @@ class Surveillance:
                                         kind="hybrid", require_weights=True, tta=True)
             self.components.append("classify")
         from surveillance import detection
-        for comp, data in (("detect", "plantdoc"), ("pests", "tea")):
-            if comp in components and (RUNS / f"{data}_retinanet" / "best.pt").exists():
-                net, names = detection.load(data, "retinanet", self.device)
+        for comp, data, arch in (("detect", "plantdoc", detector), ("pests", "tea", "retinanet")):
+            if comp in components and (RUNS / f"{data}_{arch}" / "best.pt").exists():
+                net, names = detection.load(data, arch, self.device)
                 setattr(self, f"{comp}_model", (net, names))
                 self.components.append(comp)
         if "segment" in components and (RUNS / "leafseg_deeplab" / "best.pt").exists():

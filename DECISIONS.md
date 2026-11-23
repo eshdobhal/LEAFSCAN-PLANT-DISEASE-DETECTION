@@ -384,7 +384,7 @@ benchmarked across model families, with a full evaluation package. Decisions, ea
 | PlantDoc-corrected for disease detection, not the original PlantDoc boxes | The corrected release removes 12 train/test duplicates and fixes class names and EXIF orientation |
 | Tea dataset for pests, de-duplicated first | The only licensed, box-annotated field pest set found; 72% of its files were byte-identical copies, which would have inflated every metric |
 | A rejected candidate: a synthetic pest set | It contained kitchen pests, not crop pests |
-| RetinaNet-ResNet50-FPN shipped for detection | Brief names "YOLO or RetinaNet with ResNet"; RetinaNet is the most accurate at strict IoU on tea, is BSD-licensed, and passes R4 on PlantDoc |
+| RetinaNet-ResNet50-FPN is the default detector; Faster R-CNN behind `--detector fasterrcnn` | Brief names "YOLO or RetinaNet with ResNet"; RetinaNet passes R4, is best on tea at strict IoU and 2.3× faster than Faster R-CNN, but Faster R-CNN is clearly more accurate on PlantDoc (mAP@0.5 0.607 vs 0.489), so it is one flag away |
 | YOLOv8s only as a benchmark | AGPL-3.0 conflicts with the redistributable-licence constraint, although it is 8× faster on a CPU |
 | Faster R-CNN stands for the R-CNN family | It is R-CNN and Fast R-CNN with the slow external proposals replaced by a learned network; training R-CNN itself (selective search, one CNN pass per region) would teach nothing new at 100× the cost |
 | DeepLabV3 for damaged tissue, Mask R-CNN as the instance benchmark | DeepLab beat FCN on every metric; Mask R-CNN gives true instance masks for the lesion-count question |
@@ -397,3 +397,5 @@ benchmarked across model families, with a full evaluation package. Decisions, ea
 | Demo video from openly licensed photos only | PlantDoc images are scraped from the web, some watermarked; the demo uses PlantVillage (CC0), LeafNet75 (Apache-2.0) and tea (CC BY 4.0) |
 | Synthetic scouting clip labelled SYNTHETIC in its file name, the video and every document | No openly licensed annotated field video exists; the label prevents it being mistaken for field evidence |
 | Disclaimer on every result (web page, browser version, API `notice`, CLI notes) | Requirement R13; previously only the About page carried it |
+| Temperature fitted as exp(log T) | A raw T overshot to a negative value when nearly every prediction is right (lab photos); found by a test written after the first evaluation run crashed |
+| Generative models not used in the product | Measured: VAE and GAN leaves were no better than repeating the 25 real photos; the GAN mode-collapsed |

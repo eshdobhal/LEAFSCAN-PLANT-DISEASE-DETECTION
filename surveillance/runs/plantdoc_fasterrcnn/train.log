@@ -18,3 +18,5 @@ Consider using tensor.detach() first. (Triggered internally at C:\actions-runner
 {"epoch": 13, "loss": 0.1601, "val_mAP": 0.3747, "val_mAP50": 0.5426, "minutes": 6.47}
 {"epoch": 14, "loss": 0.1453, "val_mAP": 0.3856, "val_mAP50": 0.5485, "minutes": 6.45}
 {"epoch": 15, "loss": 0.1386, "val_mAP": 0.3828, "val_mAP50": 0.5434, "minutes": 6.44}
+{"epoch": 16, "loss": 0.1345, "val_mAP": 0.3863, "val_mAP50": 0.544, "minutes": 6.43}
+best val mAP 0.3863
