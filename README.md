@@ -27,7 +27,8 @@ confident it is, and tells you what to do next.
 **New: LeafScan Surveillance (Project 05).** Diseased-leaf and pest **detection**, damaged-tissue
 **segmentation** with a severity grade, a 7-day **progression forecast**, a batch and video **CLI**, and a
 full evaluation package. See the [technical report](docs/TECHNICAL_REPORT.md),
-[model card](docs/MODEL_CARD.md) and [2-minute demo video](docs/demo/leafscan_demo.mp4).
+[model card](docs/MODEL_CARD.md), [2-minute demo video](docs/demo/leafscan_demo.mp4) and
+[final presentation](docs/presentation/LeafScan_final_presentation.pdf).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="screenshots/home-desktop-dark.png">
@@ -1009,6 +1010,7 @@ LEAFSCAN-PLANT-DISEASE-DETECTION/
 | [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | Use case, stakeholders, acceptance tests, constraints, brief → evidence map |
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | Using the browser version, the web app and the surveillance CLI |
 | [docs/demo/leafscan_demo.mp4](docs/demo/leafscan_demo.mp4) | Two-minute demo video |
+| [docs/presentation/](docs/presentation/LeafScan_final_presentation.pdf) | Final presentation (19 slides, PDF) and [speaker notes](docs/presentation/SPEAKER_NOTES.md) |
 | [DECISIONS.md](DECISIONS.md) | Every design decision with its reason, full training tables and per-class results |
 | [CODE_WALKTHROUGH.md](CODE_WALKTHROUGH.md) | File-by-file explanation and quick answers with exact line numbers |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | Datasets, model weights, libraries and assets used, with their licences |

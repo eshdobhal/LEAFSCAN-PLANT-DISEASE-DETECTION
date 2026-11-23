@@ -30,6 +30,7 @@ conditional go as a scouting aid, not as a lesion counter.
 | [MODEL_CARD.md](MODEL_CARD.md) | Every model: intended use, measured out-of-scope behaviour, performance, training |
 | [USER_GUIDE.md](USER_GUIDE.md) | How to use the browser version, web app and CLI; how to read a report |
 | [demo/leafscan_demo.mp4](demo/leafscan_demo.mp4) | Two-minute demo: live site, CLI, pests, forecast, video mode, results |
+| [presentation/LeafScan_final_presentation.pdf](presentation/LeafScan_final_presentation.pdf) | Final presentation, 19 slides, with [speaker notes](presentation/SPEAKER_NOTES.md) |
 | [`surveillance/results/EVALUATION_SUMMARY.md`](../surveillance/results/EVALUATION_SUMMARY.md) | Machine-generated tables from the evaluation package |
 
 ---
